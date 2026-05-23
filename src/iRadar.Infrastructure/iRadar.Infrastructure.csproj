@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Description>Config persistence, logging (Serilog), IRSDK adapter (IRSDKSharper), auto-update. Windows-only because IRSDK uses Windows-specific memory-mapped files.</Description>
+    <Description>Config persistence, logging (Serilog), IRSDK adapter (hand-rolled, no external IRSDK wrapper — auditable from line 1), auto-update. Windows-only because IRSDK uses Windows-specific memory-mapped files.</Description>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,10 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pinned versions to be added in Fase 1-2; placeholder during Fase 0 -->
-    <!-- PackageReference Include="IRSDKSharper" Version="*" / -->
-    <!-- PackageReference Include="Serilog" Version="4.0.0" / -->
-    <!-- PackageReference Include="Serilog.Sinks.File" Version="6.0.0" / -->
+    <!-- IRSDK adapter implemented in-house — no third-party wrapper to audit. -->
+    <!-- Serilog lands in Fase 2 alongside the real logging needs. -->
   </ItemGroup>
 
 </Project>

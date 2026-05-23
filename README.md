@@ -4,8 +4,9 @@ External radar/spotter overlay for iRacing. Reads telemetry via the official
 public IRSDK shared-memory interface and renders a transparent always-on-top
 window that shows nearby cars and collision threats.
 
-**Status: Fase 0 (scaffolding).** No runtime yet — see `docs/` and the project
-plan for the roadmap.
+**Status: Fase 1 (live telemetry connection).** The `iRadar.Replay` tool can
+connect to a running iRacing instance via the public IRSDK shared memory and
+print live telemetry every 100ms. No overlay window yet — that's Fase 4.
 
 ## Anti-cheat posture
 
@@ -57,6 +58,30 @@ dotnet restore iRadar.sln
 dotnet build iRadar.sln -c Release
 dotnet test tests/iRadar.Core.Tests
 ```
+
+## Running the Fase 1 telemetry dumper (zero-risk)
+
+This validates that the IRSDK connection works end-to-end without any chance
+of affecting your iRacing account.
+
+1. Open **iRacing** on your Windows machine.
+2. Go to the **Replays** tab and load any saved session (yours or a friend's).
+   Hit play — iRacing is now broadcasting telemetry from a recording, not from
+   a live session.
+3. From a terminal on the same machine:
+   ```powershell
+   dotnet run --project tests/iRadar.Replay
+   ```
+4. You should see lines like:
+   ```
+   [state] Connecting
+   [state] InCar
+   tick=  123456 playerIdx=  5 speed= 247.3km/h lap=  3 lapPct=0.481 cars=27 proximity=Clear        track="Spa-Francorchamps" [on-track]
+   ```
+5. `Ctrl+C` to stop.
+
+Because iRacing is just playing back a recording, nothing you do here can
+affect your iRating, safety rating, or stewards' review.
 
 ## Zero-risk testing strategy
 
