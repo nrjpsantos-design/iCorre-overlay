@@ -62,15 +62,18 @@ dotnet test tests/iRadar.Core.Tests
 ## Running the Fase 1 telemetry dumper (zero-risk)
 
 This validates that the IRSDK connection works end-to-end without any chance
-of affecting your iRacing account.
+of affecting your iRacing account. **Full step-by-step walkthrough** —
+including prerequisites, troubleshooting, and a validation checklist — is in
+[docs/TESTING-FASE1.md](docs/TESTING-FASE1.md).
 
+Short version:
 1. Open **iRacing** on your Windows machine.
 2. Go to the **Replays** tab and load any saved session (yours or a friend's).
-   Hit play — iRacing is now broadcasting telemetry from a recording, not from
-   a live session.
-3. From a terminal on the same machine:
+   Hit play — iRacing is now broadcasting telemetry from a recording, not
+   from a live session.
+3. From a PowerShell on the same machine:
    ```powershell
-   dotnet run --project tests/iRadar.Replay
+   dotnet run --project tests/iRadar.Replay -c Release
    ```
 4. You should see lines like:
    ```
