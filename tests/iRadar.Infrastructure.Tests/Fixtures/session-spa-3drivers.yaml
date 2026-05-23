@@ -1,0 +1,94 @@
+---
+WeekendInfo:
+ TrackName: spa
+ TrackID: 1
+ TrackLength: 7.004 km
+ TrackLengthOfficial: 7.004 km
+ TrackDisplayName: Circuit de Spa-Francorchamps
+ TrackDisplayShortName: Spa
+ TrackConfigName: Grand Prix Pits
+ TrackCity: Stavelot
+ TrackCountry: Belgium
+ TrackAltitude: 410.05 m
+ SimMode: full
+ WeekendOptions:
+  NumStarters: 0
+SessionInfo:
+ Sessions:
+ - SessionNum: 0
+   SessionLaps: unlimited
+   SessionTime: unlimited
+   SessionType: Open Practice
+   SessionTrackRubberState: moderate usage
+   ResultsPositions:
+   ResultsFastestLap:
+   - CarIdx: 255
+     FastestLap: 0
+     FastestTime: -1.000
+QualifyResultsInfo:
+ Results:
+ - Position: 0
+   ClassPosition: 0
+   CarIdx: 5
+   FastestLap: 0
+   FastestTime: -1.000
+   Time: 0.000
+CameraInfo:
+ Groups:
+ - GroupNum: 1
+   GroupName: Nose
+DriverInfo:
+ DriverCarIdx: 5
+ DriverHeadPosX: -0.139
+ DriverHeadPosY: 0.000
+ DriverHeadPosZ: 0.575
+ DriverCarIdleRPM: 1000.000
+ DriverCarRedLine: 8500.000
+ PaceCarIdx: -1
+ Drivers:
+ - CarIdx: 0
+   UserName: Alice Driver
+   AbbrevName:
+   Initials:
+   UserID: 11111
+   TeamID: 0
+   TeamName: Alice Driver
+   CarNumber: "11"
+   CarNumberRaw: 11
+   CarPath: ferrari296gt3
+   CarClassID: 4011
+   CarID: 165
+   CarIsPaceCar: 0
+   CarIsAI: 0
+   IRating: 1234
+   LicLevel: 16
+   LicSubLevel: 250
+ - CarIdx: 2
+   UserName: Bob Other
+   AbbrevName:
+   Initials:
+   UserID: 22222
+   CarNumber: "42"
+   CarNumberRaw: 42
+   CarPath: porsche992cup
+   CarClassID: 4011
+   CarID: 167
+   IRating: 4567
+   LicLevel: 18
+ - CarIdx: 5
+   UserName: Joao Paulo
+   AbbrevName:
+   Initials:
+   UserID: 55555
+   CarNumber: "99"
+   CarNumberRaw: 99
+   CarPath: mercedesamggt3evo
+   CarClassID: 4011
+   CarID: 169
+   IRating: 2987
+   LicLevel: 17
+SplitTimeInfo:
+ Sectors:
+ - SectorNum: 0
+   SectorStartPct: 0.000000
+...

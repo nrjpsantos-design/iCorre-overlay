@@ -33,5 +33,8 @@ jobs:
       - name: Build (Release)
         run: dotnet build iRadar.sln --configuration Release --no-restore
 
-      - name: Test (Core only — cross-platform)
+      - name: Test (Core)
         run: dotnet test tests/iRadar.Core.Tests/iRadar.Core.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test (Infrastructure — Windows-only)
+        run: dotnet test tests/iRadar.Infrastructure.Tests/iRadar.Infrastructure.Tests.csproj --configuration Release --no-build --verbosity normal

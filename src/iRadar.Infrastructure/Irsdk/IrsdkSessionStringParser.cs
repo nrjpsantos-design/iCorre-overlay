@@ -30,7 +30,9 @@ internal static partial class IrsdkSessionStringParser
     [GeneratedRegex(@"^\s*DriverCarIdx:\s*(-?\d+)\s*$", RegexOptions.Multiline)]
     private static partial Regex DriverCarIdxRegex();
 
-    [GeneratedRegex(@"^\s*CarIdx:\s*(\d+)\s*$", RegexOptions.Multiline)]
+    // Driver list items in iRacing's YAML start with "- CarIdx: N" (YAML
+    // list-of-mappings). The `-` may have arbitrary leading whitespace.
+    [GeneratedRegex(@"^\s*-\s*CarIdx:\s*(\d+)\s*$", RegexOptions.Multiline)]
     private static partial Regex DriverIdxRegex();
 
     [GeneratedRegex(@"^\s*UserName:\s*(.+?)\s*$", RegexOptions.Multiline)]

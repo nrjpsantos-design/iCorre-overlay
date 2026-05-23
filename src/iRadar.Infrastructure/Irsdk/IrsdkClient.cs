@@ -1,5 +1,4 @@
 using System.IO.MemoryMappedFiles;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace iRadar.Infrastructure.Irsdk;
@@ -28,6 +27,8 @@ internal sealed class IrsdkClient : IDisposable
     private string _sessionInfoYaml = string.Empty;
 
     private readonly Dictionary<string, IrsdkVarDescriptor> _vars = new(StringComparer.Ordinal);
+    private readonly byte[] _headerBuffer = new byte[IrsdkProtocol.HeaderSize];
+    private readonly byte[] _varHeaderBuffer = new byte[IrsdkProtocol.VarHeaderSize];
 
     public bool IsOpen => _view is not null;
     public int TickRate => _header.TickRate;
@@ -66,25 +67,10 @@ internal sealed class IrsdkClient : IDisposable
     {
         if (_view is null) return false;
 
-        _view.Read(0, out _header);
+        _view.ReadArray(0, _headerBuffer, 0, _headerBuffer.Length);
+        _header = IrsdkBinaryReader.ParseHeader(_headerBuffer);
 
-        var bestTick = -1;
-        var bestOffset = 0;
-        ReadOnlySpan<IrsdkVarBuf> bufs =
-        [
-            _header.Buf0, _header.Buf1, _header.Buf2, _header.Buf3,
-        ];
-
-        var numBuf = Math.Clamp(_header.NumBuf, 0, IrsdkProtocol.MaxBuffers);
-        for (var i = 0; i < numBuf; i++)
-        {
-            if (bufs[i].TickCount > bestTick)
-            {
-                bestTick = bufs[i].TickCount;
-                bestOffset = bufs[i].BufOffset;
-            }
-        }
-
+        var (bestOffset, bestTick) = IrsdkBinaryReader.FindActiveBuffer(_header);
         var newer = bestTick > _activeBufferTick;
         _activeBufferTick = bestTick;
         _activeBufferOffset = bestOffset;
@@ -208,25 +194,17 @@ internal sealed class IrsdkClient : IDisposable
         if (_view is null) return;
 
         _vars.Clear();
-        var buf = new byte[IrsdkProtocol.VarHeaderSize];
 
         for (var i = 0; i < _header.NumVars; i++)
         {
             var pos = _header.VarHeaderOffset + (i * IrsdkProtocol.VarHeaderSize);
             if (pos + IrsdkProtocol.VarHeaderSize > _viewLength) break;
-            _view.ReadArray(pos, buf, 0, buf.Length);
+            _view.ReadArray(pos, _varHeaderBuffer, 0, _varHeaderBuffer.Length);
 
-            var type = (IrsdkVarType)BitConverter.ToInt32(buf, 0);
-            var offset = BitConverter.ToInt32(buf, 4);
-            var count = BitConverter.ToInt32(buf, 8);
-            // bytes 12..15 are countAsTime + 3 pad bytes — unused
-            var name = ReadFixedString(buf, 16, IrsdkProtocol.MaxString);
-            var desc = ReadFixedString(buf, 16 + IrsdkProtocol.MaxString, IrsdkProtocol.MaxDesc);
-            var unit = ReadFixedString(buf, 16 + IrsdkProtocol.MaxString + IrsdkProtocol.MaxDesc, IrsdkProtocol.MaxString);
-
-            if (!string.IsNullOrEmpty(name))
+            var descriptor = IrsdkBinaryReader.ParseVarDescriptor(_varHeaderBuffer);
+            if (!string.IsNullOrEmpty(descriptor.Name))
             {
-                _vars[name] = new IrsdkVarDescriptor(name, type, offset, count, unit, desc);
+                _vars[descriptor.Name] = descriptor;
             }
         }
     }
@@ -246,14 +224,6 @@ internal sealed class IrsdkClient : IDisposable
 
         _sessionInfoYaml = Encoding.Latin1.GetString(buf, 0, realLen);
         _sessionInfoUpdate = _header.SessionInfoUpdate;
-    }
-
-    private static string ReadFixedString(ReadOnlySpan<byte> buffer, int offset, int maxLen)
-    {
-        var slice = buffer.Slice(offset, maxLen);
-        var end = slice.IndexOf((byte)0);
-        if (end < 0) end = slice.Length;
-        return Encoding.ASCII.GetString(slice[..end]);
     }
 
     public void Dispose() => Cleanup();
