@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>Pure radar engine: telemetry models, math, threat detection, gap calculation. No Win32, no rendering — fully cross-platform for testability.</Description>
+  </PropertyGroup>
+
+</Project>

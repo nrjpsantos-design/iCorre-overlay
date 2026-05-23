@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Description>Console app that replays an .ibt telemetry file through TelemetryService — used for zero-risk testing of the radar engine against recorded sessions.</Description>
+    <AssemblyName>iRadar.Replay</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\iRadar.Core\iRadar.Core.csproj" />
+    <ProjectReference Include="..\..\src\iRadar.Infrastructure\iRadar.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

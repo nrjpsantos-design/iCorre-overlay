@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Description>Win32 layered window + Vortice D3D11 + ImGui.NET overlay rendering. Windows-only.</Description>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\iRadar.Core\iRadar.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pinned versions to be added in Fase 4; placeholder during Fase 0 -->
+    <!-- PackageReference Include="Vortice.Direct3D11" Version="3.6.2" / -->
+    <!-- PackageReference Include="ImGui.NET" Version="1.91.6.1" / -->
+  </ItemGroup>
+
+</Project>

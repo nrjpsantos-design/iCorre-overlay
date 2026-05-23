@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <RootNamespace>iRadar.$(MSBuildProjectName.Replace('iRadar.',''))</RootNamespace>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <Product>iRadar Overlay</Product>
+    <Company>iRadar</Company>
+    <Copyright>© 2026 iRadar contributors</Copyright>
+  </PropertyGroup>
+</Project>

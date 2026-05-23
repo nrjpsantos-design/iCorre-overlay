@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Description>Composition root: wires Telemetry + Radar + Overlay + Infrastructure into the running executable.</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>iRadar</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\iRadar.Core\iRadar.Core.csproj" />
+    <ProjectReference Include="..\iRadar.Overlay\iRadar.Overlay.csproj" />
+    <ProjectReference Include="..\iRadar.Infrastructure\iRadar.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

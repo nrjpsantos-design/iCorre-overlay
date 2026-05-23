@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Description>Config persistence, logging (Serilog), IRSDK adapter (IRSDKSharper), auto-update. Windows-only because IRSDK uses Windows-specific memory-mapped files.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\iRadar.Core\iRadar.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pinned versions to be added in Fase 1-2; placeholder during Fase 0 -->
+    <!-- PackageReference Include="IRSDKSharper" Version="*" / -->
+    <!-- PackageReference Include="Serilog" Version="4.0.0" / -->
+    <!-- PackageReference Include="Serilog.Sinks.File" Version="6.0.0" / -->
+  </ItemGroup>
+
+</Project>

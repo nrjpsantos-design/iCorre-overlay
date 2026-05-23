@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  anti-cheat-gate:
+    name: Anti-cheat compliance gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for forbidden Win32 APIs
+        run: bash tools/verify-no-forbidden-apis.sh src
+
+  build-and-test:
+    name: Build and test
+    runs-on: windows-latest
+    needs: anti-cheat-gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore iRadar.sln
+
+      - name: Build (Release)
+        run: dotnet build iRadar.sln --configuration Release --no-restore
+
+      - name: Test (Core only — cross-platform)
+        run: dotnet test tests/iRadar.Core.Tests/iRadar.Core.Tests.csproj --configuration Release --no-build --verbosity normal

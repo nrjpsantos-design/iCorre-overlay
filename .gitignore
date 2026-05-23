@@ -1,0 +1,45 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vs/
+.vscode/
+*.swp
+
+# Build output
+artifacts/
+publish/
+out/
+*.dll
+*.exe
+*.pdb
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# Rider
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# iRacing fixtures (large binary telemetry files — keep small samples only in tests/fixtures)
+*.ibt
+!tests/iRadar.Core.Tests/fixtures/sample-*.ibt
+
+# Logs
+*.log
+logs/
+
+# Secrets
+*.pfx
+*.snk
+secrets.json
