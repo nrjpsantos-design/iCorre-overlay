@@ -2,9 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Description>Win32 layered window + Vortice D3D11 + ImGui.NET overlay rendering. Windows-only.</Description>
+    <Description>Transparent click-through overlay window. Hosts ImGui widgets rendered via ClickableTransparentOverlay (external Win32 layered window + D3D11 + ImGui.NET — no injection, no hooks).</Description>
     <UseWindowsForms>false</UseWindowsForms>
     <UseWPF>false</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,9 +13,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pinned versions to be added in Fase 4; placeholder during Fase 0 -->
-    <!-- PackageReference Include="Vortice.Direct3D11" Version="3.6.2" / -->
-    <!-- PackageReference Include="ImGui.NET" Version="1.91.6.1" / -->
+    <!--
+      ClickableTransparentOverlay is an external overlay framework used by
+      many open-source game overlays (POE, EVE, etc.). It creates a Win32
+      layered window and renders ImGui via D3D11. It does NOT inject into
+      other processes, install hooks, or read game memory — exactly the
+      anti-cheat boundary iRadar maintains.
+    -->
+    <PackageReference Include="ClickableTransparentOverlay" Version="11.1.0" />
+    <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
   </ItemGroup>
 
 </Project>

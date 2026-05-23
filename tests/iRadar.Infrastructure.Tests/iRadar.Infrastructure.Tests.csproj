@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\iRadar.Core\iRadar.Core.csproj" />
     <ProjectReference Include="..\..\src\iRadar.Infrastructure\iRadar.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\iRadar.Overlay\iRadar.Overlay.csproj" />
   </ItemGroup>
 
   <ItemGroup>
