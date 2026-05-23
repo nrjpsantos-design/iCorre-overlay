@@ -80,9 +80,9 @@ Open iRacing in replay mode for zero-risk testing.
 Ctrl+C to stop.
 
 [state] Connecting
-[state] InCar
-tick=  123456 playerIdx=  5 speed= 247.3km/h lap=  3 lapPct=0.481 cars=27 proximity=Clear        track="Circuit de Spa-Francorchamps" [on-track]
-tick=  123472 playerIdx=  5 speed= 251.8km/h lap=  3 lapPct=0.482 cars=27 proximity=Clear        track="Circuit de Spa-Francorchamps" [on-track]
+[state] InSession
+tick=  123456 playerIdx= 37 camIdx= 37 speed= 247.3km/h lap=  3 lapPct=0.481 cars=64 proximity=n/a          track="Circuito de Navarra" [replay]
+tick=  123472 playerIdx= 37 camIdx= 37 speed= 251.8km/h lap=  3 lapPct=0.482 cars=64 proximity=n/a          track="Circuito de Navarra" [replay]
 ...
 ```
 
@@ -90,26 +90,60 @@ A cada ~100ms uma linha nova é impressa enquanto o replay avança.
 
 `Ctrl+C` para parar.
 
+> **`proximity=n/a` e `[replay]` são esperados em modo replay!** Veja a
+> próxima seção.
+
+---
+
+## Por que `proximity` e o estado mudam em replay vs live
+
+O iRacing trata replay e live como contextos diferentes. Algumas variáveis
+de telemetria só fazem sentido quando há um piloto vivo dirigindo:
+
+| Variável iRacing | Em REPLAY | Em LIVE (Test Drive, Race, etc.) |
+|---|---|---|
+| `CarLeftRight` (proximity) | sempre `Off` (mostrado como `n/a` no dumper) | `Clear`/`CarLeft`/`CarRight`/etc. conforme cenário |
+| `IsOnTrack` | sempre `false` | `true` quando você está na pista, `false` em pit/garage |
+| `IsReplayPlaying` | `true` | `false` |
+
+O dumper mostra três estados possíveis no fim da linha:
+
+- `[replay]` — iRacing está em playback de uma gravação
+- `[on-track]` — você está pilotando uma sessão e está em pista
+- `[pit/garage]` — você está em sessão mas no box ou garagem
+
+Em modo replay, o radar engine ainda terá os dados que importam
+(`CarIdxLapDistPct` por carro, ou seja, onde cada um está no traçado), mas
+o **spotter visual** só funciona quando você está realmente pilotando uma
+sessão. Isto é uma limitação do iRacing, não do app.
+
 ---
 
 ## Checklist de validação
 
 Marque mentalmente:
 
-- [ ] State transita: `Connecting` → `InCar` (ou `InSession` se o replay
-      ainda não está com câmera em carro)
+- [ ] State transita: `Connecting` → `InSession` (em replay) ou `InCar`
+      (em sessão ao vivo na pista)
 - [ ] `playerIdx` é um número ≥ 0 (não `-1`)
+- [ ] `camIdx` é um número ≥ 0 (em replay segue a câmera; em live geralmente
+      iguala `playerIdx`)
 - [ ] `speed` está em `km/h`, valor realista (zero quando parado, > 0 quando
       o carro se move)
 - [ ] `lap` cresce conforme o replay avança
 - [ ] `lapPct` está entre `0.000` e `1.000` e está aumentando
-- [ ] `cars` é o número total de carros na sessão
-- [ ] `track` mostra o nome correto do circuito (Spa, Monza, Daytona, etc.)
-- [ ] Quando você pula o replay para um momento com side-by-side,
-      `proximity` muda para `CarLeft` ou `CarRight`
-- [ ] Ao alt-tab no iRacing e fechar a janela do replay (no menu),
-      `[state] Disconnected` aparece — e ao abrir o replay de novo,
-      reconecta automaticamente para `InCar`
+- [ ] `cars` é o número total de carros na sessão (no replay do Navarra do
+      João foram 64 — bate)
+- [ ] `track` mostra o nome correto do circuito
+- [ ] O label final no fim da linha bate com o que está rolando no iRacing:
+      `[replay]` quando assistindo replay, `[on-track]`/`[pit/garage]`
+      quando dirigindo
+- [ ] Ao fechar a janela do replay (no menu), `[state] Disconnected`
+      aparece — e ao abrir o replay de novo, reconecta automaticamente
+- [ ] **Bonus (opcional)**: entrar numa sessão Test Drive offline (Single
+      Race → Test Drive em qualquer pista) e confirmar que `proximity`
+      reflete carros próximos quando você dirige perto deles. Isto valida
+      o spotter end-to-end e é zero-risco também (offline)
 
 ---
 

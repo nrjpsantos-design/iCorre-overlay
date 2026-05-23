@@ -33,10 +33,12 @@ public class RadarEngineTests
             CapturedAt = DateTimeOffset.UtcNow,
             SessionTick = 1234,
             PlayerCarIdx = playerCarIdx,
+            CamCarIdx = playerCarIdx,
             PlayerLapDistPct = playerLapDistPct,
             PlayerYawRad = 0f,
             Proximity = proximity,
             IsOnTrack = isOnTrack,
+            IsReplayPlaying = false,
             Cars = cars,
             Session = new SessionData
             {

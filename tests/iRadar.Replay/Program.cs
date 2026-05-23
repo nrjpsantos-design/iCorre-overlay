@@ -66,15 +66,31 @@ internal static class Program
     private static void PrintSnapshot(TelemetrySnapshot s)
     {
         var speedKmh = s.PlayerSpeedMs * 3.6f;
+
+        // Three states are meaningful:
+        //   replay      — iRacing in replay playback (no live driver)
+        //   on-track    — live driver in car on track
+        //   pit/garage  — live driver but not on track
+        var state = s.IsReplayPlaying
+            ? "replay"
+            : s.IsOnTrack
+                ? "on-track"
+                : "pit/garage";
+
+        // proximity is only meaningful with a live driver; show n/a in replay
+        // so the user doesn't mistake "Off" for a bug.
+        var proximity = s.IsReplayPlaying ? "n/a" : s.Proximity.ToString();
+
         Console.WriteLine(
             $"tick={s.SessionTick,8} " +
             $"playerIdx={s.PlayerCarIdx,3} " +
+            $"camIdx={s.CamCarIdx,3} " +
             $"speed={speedKmh,6:F1}km/h " +
             $"lap={s.PlayerLap,3} " +
             $"lapPct={s.PlayerLapDistPct,5:F3} " +
             $"cars={s.Cars.Count,2} " +
-            $"proximity={s.Proximity,-13} " +
-            $"track=\"{s.Session.TrackName}\"" +
-            (s.IsOnTrack ? " [on-track]" : " [pit/replay]"));
+            $"proximity={proximity,-12} " +
+            $"track=\"{s.Session.TrackName}\" " +
+            $"[{state}]");
     }
 }

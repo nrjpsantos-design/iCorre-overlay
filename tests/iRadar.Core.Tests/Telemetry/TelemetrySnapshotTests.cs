@@ -11,12 +11,45 @@ public class TelemetrySnapshotTests
         var s = TelemetrySnapshot.Empty;
 
         Assert.Equal(-1, s.PlayerCarIdx);
+        Assert.Equal(-1, s.CamCarIdx);
         Assert.Equal(0, s.SessionTick);
         Assert.Equal(0f, s.PlayerSpeedMs);
         Assert.False(s.IsOnTrack);
+        Assert.False(s.IsReplayPlaying);
         Assert.Equal(CarLeftRight.Off, s.Proximity);
         Assert.Empty(s.Cars);
         Assert.Same(SessionData.Unknown, s.Session);
+    }
+
+    [Fact]
+    public void FocusedCar_PrefersCamCarIdx_FallsBackToPlayer()
+    {
+        var snap = TelemetrySnapshot.Empty with
+        {
+            PlayerCarIdx = 5,
+            CamCarIdx = 12,
+            Cars = new[]
+            {
+                CarState.Empty(5) with { DriverName = "Me" },
+                CarState.Empty(12) with { DriverName = "Other" },
+            },
+        };
+
+        Assert.Equal(12, snap.FocusedCar!.CarIdx);
+        Assert.Equal("Other", snap.FocusedCar.DriverName);
+    }
+
+    [Fact]
+    public void FocusedCar_FallsBackToPlayer_WhenCamIdxAbsent()
+    {
+        var snap = TelemetrySnapshot.Empty with
+        {
+            PlayerCarIdx = 5,
+            CamCarIdx = -1,
+            Cars = new[] { CarState.Empty(5) with { DriverName = "Me" } },
+        };
+
+        Assert.Equal(5, snap.FocusedCar!.CarIdx);
     }
 
     [Fact]

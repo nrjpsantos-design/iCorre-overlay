@@ -9,19 +9,34 @@ public sealed record TelemetrySnapshot
     public required int SessionTick { get; init; }
     public required SessionData Session { get; init; }
 
-    // Player-only telemetry
+    // Player-only telemetry. PlayerCarIdx is the index of the logged-in
+    // driver's car (constant for the whole session). CamCarIdx is the car
+    // currently followed by the camera — equals PlayerCarIdx in live mode
+    // but differs in replay or when watching another car.
     public required int PlayerCarIdx { get; init; }
+    public required int CamCarIdx { get; init; }
     public required float PlayerSpeedMs { get; init; }
     public required int PlayerLap { get; init; }
     public required float PlayerLapDistPct { get; init; }
     public required float PlayerYawRad { get; init; }
+
+    // Proximity and IsOnTrack are only meaningful when the player is driving
+    // a live session — iRacing returns Off / false in replay because there
+    // is no live driver to compute them for.
     public required CarLeftRight Proximity { get; init; }
     public required bool IsOnTrack { get; init; }
+    public required bool IsReplayPlaying { get; init; }
 
     // All cars in the session, including the player. Order is by CarIdx.
     public required IReadOnlyList<CarState> Cars { get; init; }
 
     public CarState? Player => Cars.FirstOrDefault(c => c.CarIdx == PlayerCarIdx);
+
+    // Effective car for radar/spotter purposes: follows the camera in replay
+    // and falls back to the logged-in driver in live mode.
+    public CarState? FocusedCar =>
+        Cars.FirstOrDefault(c => c.CarIdx == CamCarIdx)
+        ?? Cars.FirstOrDefault(c => c.CarIdx == PlayerCarIdx);
 
     public static TelemetrySnapshot Empty { get; } = new()
     {
@@ -29,12 +44,14 @@ public sealed record TelemetrySnapshot
         SessionTick = 0,
         Session = SessionData.Unknown,
         PlayerCarIdx = -1,
+        CamCarIdx = -1,
         PlayerSpeedMs = 0f,
         PlayerLap = 0,
         PlayerLapDistPct = 0f,
         PlayerYawRad = 0f,
         Proximity = CarLeftRight.Off,
         IsOnTrack = false,
+        IsReplayPlaying = false,
         Cars = Array.Empty<CarState>(),
     };
 }

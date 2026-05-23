@@ -158,12 +158,14 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
     {
         if (!_client.ReadInt("SessionTick", out var sessionTick)) return null;
         _client.ReadInt("PlayerCarIdx", out var playerCarIdx);
+        _client.ReadInt("CamCarIdx", out var camCarIdx);
         _client.ReadFloat("Speed", out var speed);
         _client.ReadInt("Lap", out var lap);
         _client.ReadFloat("LapDistPct", out var playerLapDist);
         _client.ReadFloat("Yaw", out var yaw);
         _client.ReadInt("CarLeftRight", out var proximityRaw);
         _client.ReadBool("IsOnTrack", out var isOnTrack);
+        _client.ReadBool("IsReplayPlaying", out var isReplayPlaying);
 
         _client.ReadFloatArray("CarIdxLapDistPct", floatBuf, out var lapDistCount);
         var estTime = new float[lapDistCount];
@@ -218,12 +220,14 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
                 IsReplay = _session.SessionType.Equals("Replay", StringComparison.OrdinalIgnoreCase),
             },
             PlayerCarIdx = playerCarIdx >= 0 ? playerCarIdx : _session.DriverCarIdx,
+            CamCarIdx = camCarIdx,
             PlayerSpeedMs = speed,
             PlayerLap = lap,
             PlayerLapDistPct = playerLapDist,
             PlayerYawRad = yaw,
             Proximity = (CarLeftRight)proximityRaw,
             IsOnTrack = isOnTrack,
+            IsReplayPlaying = isReplayPlaying,
             Cars = cars,
         };
     }
