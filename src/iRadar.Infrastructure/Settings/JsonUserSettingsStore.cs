@@ -38,7 +38,9 @@ public sealed class JsonUserSettingsStore
         _path = Path.Combine(dir, "settings.json");
     }
 
-    public string Path => _path;
+    // Exposed for diagnostics ("[settings] saved to ..."). Named FilePath
+    // (not Path) to avoid shadowing System.IO.Path inside this class.
+    public string FilePath => _path;
 
     public UserSettings Load()
     {

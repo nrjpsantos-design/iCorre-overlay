@@ -13,7 +13,7 @@ public class JsonUserSettingsStoreTests
         // easily mock the path, so we accept it writes into the test runner's
         // LocalAppData under iRadar — and clean up afterward.
         var store = new JsonUserSettingsStore();
-        var backup = File.Exists(store.Path) ? File.ReadAllText(store.Path) : null;
+        var backup = File.Exists(store.FilePath) ? File.ReadAllText(store.FilePath) : null;
 
         try
         {
@@ -39,8 +39,8 @@ public class JsonUserSettingsStoreTests
         finally
         {
             // Restore previous file if any, otherwise remove the test file.
-            if (backup is not null) File.WriteAllText(store.Path, backup);
-            else if (File.Exists(store.Path)) File.Delete(store.Path);
+            if (backup is not null) File.WriteAllText(store.FilePath, backup);
+            else if (File.Exists(store.FilePath)) File.Delete(store.FilePath);
         }
     }
 
@@ -48,8 +48,8 @@ public class JsonUserSettingsStoreTests
     public void Load_MissingFile_ReturnsDefaults()
     {
         var store = new JsonUserSettingsStore();
-        var backup = File.Exists(store.Path) ? File.ReadAllText(store.Path) : null;
-        if (File.Exists(store.Path)) File.Delete(store.Path);
+        var backup = File.Exists(store.FilePath) ? File.ReadAllText(store.FilePath) : null;
+        if (File.Exists(store.FilePath)) File.Delete(store.FilePath);
 
         try
         {
@@ -59,7 +59,7 @@ public class JsonUserSettingsStoreTests
         }
         finally
         {
-            if (backup is not null) File.WriteAllText(store.Path, backup);
+            if (backup is not null) File.WriteAllText(store.FilePath, backup);
         }
     }
 
@@ -67,8 +67,8 @@ public class JsonUserSettingsStoreTests
     public void Load_CorruptFile_ReturnsDefaults()
     {
         var store = new JsonUserSettingsStore();
-        var backup = File.Exists(store.Path) ? File.ReadAllText(store.Path) : null;
-        File.WriteAllText(store.Path, "{ not valid json !!!");
+        var backup = File.Exists(store.FilePath) ? File.ReadAllText(store.FilePath) : null;
+        File.WriteAllText(store.FilePath, "{ not valid json !!!");
 
         try
         {
@@ -78,8 +78,8 @@ public class JsonUserSettingsStoreTests
         }
         finally
         {
-            if (backup is not null) File.WriteAllText(store.Path, backup);
-            else if (File.Exists(store.Path)) File.Delete(store.Path);
+            if (backup is not null) File.WriteAllText(store.FilePath, backup);
+            else if (File.Exists(store.FilePath)) File.Delete(store.FilePath);
         }
     }
 }
