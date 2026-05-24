@@ -6,30 +6,29 @@ namespace iRadar.Overlay.Window;
 
 // Top-level transparent click-through window. Hosted by
 // ClickableTransparentOverlay (external Win32 layered window + D3D11 +
-// ImGui.NET). The overlay is always-on-top; the render loop only draws
-// ImGui content when the host process (iRacing) holds the foreground —
-// otherwise the window stays present but renders nothing, so the user
-// doesn't see iRadar widgets bleeding onto other apps.
+// ImGui.NET). The overlay is sized to the virtual desktop bounding box at
+// construction time and repositioned to that origin on PostInitialized —
+// so it covers every monitor at once. Widgets drawn inside ImGui can
+// therefore be dragged anywhere on any screen during Edit Mode.
 //
-// Multi-monitor: ClickableTransparentOverlay creates the window on the
-// primary monitor by default. We watch where iRacing's main window lives
-// and reposition our window to cover the same monitor — checked on
-// PostInitialized and re-checked every few seconds during Render.
+// Render gates:
+//   - Outside Edit Mode: only paint widgets when the host process
+//     (iRacing) holds the foreground. That keeps the overlay invisible
+//     when the user alt-tabs to other apps.
+//   - In Edit Mode: render unconditionally so the user can position
+//     things even with iRacing minimised.
 //
 // Click-through: CTO automatically toggles WS_EX_TRANSPARENT based on
-// ImGui.GetIO().WantCaptureMouse. By making every widget use
-// ImGuiWindowFlags.NoInputs, WantCaptureMouse stays false and the flag
-// stays set — clicks always pass through. This class only OBSERVES the
-// extended style (logs changes) so we can detect regressions; we no
-// longer call SetWindowLong ourselves because that fought CTO's own
-// toggling logic and produced rapid flicker.
+// ImGui.GetIO().WantCaptureMouse. With every widget using NoInputs
+// (locked mode), WantCaptureMouse stays false and the flag stays set —
+// clicks always pass through. In Edit Mode the widgets DO accept input
+// so the flag flaps as the cursor enters/leaves each widget; this is the
+// expected behavior and ObserveExStyle silently skips logging in that
+// mode.
 public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 {
-    private static readonly TimeSpan MonitorPollInterval = TimeSpan.FromSeconds(2);
-
     private readonly RadarFrameBuffer _frames;
     private readonly HostProcessDetector _hostDetector;
-    private readonly IRacingWindowFinder _iRacingFinder;
     private readonly MonitorLocator _monitorLocator;
     private readonly OverlayWindowMover _windowMover;
     private readonly WindowStyleManager _styleManager;
@@ -37,26 +36,25 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     private readonly WidgetLayoutManager _layouts;
     private readonly Action<string> _log;
 
-    private MonitorBounds? _currentBounds;
-    private DateTime _lastMonitorCheckUtc = DateTime.MinValue;
+    private bool _positionedToVirtualDesktop;
     private int _lastReportedExStyle;
     private DateTime _lastStyleLogUtc = DateTime.MinValue;
 
     public RadarOverlay(
+        int width,
+        int height,
         RadarFrameBuffer frames,
         HostProcessDetector hostDetector,
-        IRacingWindowFinder iRacingFinder,
         MonitorLocator monitorLocator,
         OverlayWindowMover windowMover,
         WindowStyleManager styleManager,
         EditModeController editMode,
         WidgetLayoutManager layouts,
         Action<string>? log = null)
-        : base("iRadar Overlay")
+        : base("iRadar Overlay", width, height)
     {
         ArgumentNullException.ThrowIfNull(frames);
         ArgumentNullException.ThrowIfNull(hostDetector);
-        ArgumentNullException.ThrowIfNull(iRacingFinder);
         ArgumentNullException.ThrowIfNull(monitorLocator);
         ArgumentNullException.ThrowIfNull(windowMover);
         ArgumentNullException.ThrowIfNull(styleManager);
@@ -65,7 +63,6 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
         _frames = frames;
         _hostDetector = hostDetector;
-        _iRacingFinder = iRacingFinder;
         _monitorLocator = monitorLocator;
         _windowMover = windowMover;
         _styleManager = styleManager;
@@ -78,37 +75,26 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
     protected override Task PostInitialized()
     {
-        // PostInitialized runs after the SDL window is created, so our HWND
-        // exists by now. Reposition once; CTO manages click-through itself
-        // (driven by ImGui.GetIO().WantCaptureMouse — our widgets use
-        // NoInputs so it stays click-through permanently).
-        TryRepositionToHostMonitor(force: true);
+        TryPositionToVirtualDesktop();
         return Task.CompletedTask;
     }
 
     protected override void Render()
     {
-        // Edit Mode hotkey first — the toggle decides whether ImGui windows
-        // accept input below.
         _editMode.Tick();
 
-        // Observability: log changes to the window's extended style. With
-        // our NoInputs widgets (locked mode), WS_EX_TRANSPARENT (0x20) should
-        // remain set continuously. In Edit Mode it will toggle as the user
-        // hovers widgets — that's the expected behavior.
-        ObserveExStyle();
-
-        // Re-check monitor placement periodically so a user moving iRacing
-        // across monitors mid-session sees the overlay follow.
-        var now = DateTime.UtcNow;
-        if (now - _lastMonitorCheckUtc >= MonitorPollInterval)
+        // Defensive retry — if PostInitialized fired before our HWND was
+        // ready, keep trying once a frame until it sticks.
+        if (!_positionedToVirtualDesktop)
         {
-            _lastMonitorCheckUtc = now;
-            TryRepositionToHostMonitor(force: false);
+            TryPositionToVirtualDesktop();
         }
 
-        // In Edit Mode we render even when iRacing isn't focused — the user
-        // is positioning widgets and may be in another window for the moment.
+        ObserveExStyle();
+
+        // In Edit Mode the user is positioning widgets — render even if
+        // iRacing isn't focused. In locked mode hide everything when not in
+        // game so widgets don't leak into other apps.
         if (!_editMode.IsActive && !_hostDetector.IsHostInForeground())
         {
             return;
@@ -127,8 +113,35 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         }
     }
 
+    private void TryPositionToVirtualDesktop()
+    {
+        try
+        {
+            var bounds = _monitorLocator.GetVirtualDesktopBounds();
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+            var ourHwnd = _windowMover.GetCurrentProcessMainWindow();
+            if (ourHwnd == IntPtr.Zero) return;
+
+            if (_windowMover.TryMove(ourHwnd, bounds.X, bounds.Y))
+            {
+                _positionedToVirtualDesktop = true;
+                _log($"[overlay] positioned to virtual desktop {bounds.Width}x{bounds.Height} at ({bounds.X}, {bounds.Y})");
+            }
+        }
+        catch (Exception ex)
+        {
+            _log($"[overlay] reposition error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
     private void ObserveExStyle()
     {
+        // Expected behavior: in Edit Mode CTO toggles WS_EX_TRANSPARENT as
+        // the cursor enters and leaves widgets (so the user can grab them).
+        // Logging every flap would flood the file — skip in edit mode.
+        if (_editMode.IsActive) return;
+
         try
         {
             var hwnd = _windowMover.GetCurrentProcessMainWindow();
@@ -137,7 +150,6 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
             var current = _styleManager.ReadExStyle(hwnd);
             if (current == _lastReportedExStyle) return;
 
-            // Throttle so a busy flap doesn't spam the log file.
             var now = DateTime.UtcNow;
             if (now - _lastStyleLogUtc < TimeSpan.FromMilliseconds(500)) return;
 
@@ -148,53 +160,6 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         catch (Exception ex)
         {
             _log($"[overlay] observe-exstyle exception: {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
-    private void TryRepositionToHostMonitor(bool force)
-    {
-        try
-        {
-            var iRacingHwnd = _iRacingFinder.TryFindMainWindow();
-            if (iRacingHwnd is null || iRacingHwnd == IntPtr.Zero)
-            {
-                if (force) _log("[overlay] iRacing window not found yet — will retry");
-                return;
-            }
-
-            var bounds = _monitorLocator.GetMonitorBoundsFor(iRacingHwnd.Value);
-            if (bounds is null)
-            {
-                if (force) _log("[overlay] could not determine iRacing's monitor — will retry");
-                return;
-            }
-            if (!force && bounds.Value.Equals(_currentBounds)) return;
-
-            var ourHwnd = _windowMover.GetCurrentProcessMainWindow();
-            if (ourHwnd == IntPtr.Zero)
-            {
-                if (force) _log("[overlay] our own window HWND not yet ready — will retry");
-                return;
-            }
-
-            // Only translate (X, Y) — do NOT resize. CTO sized the swap chain
-            // at construction time; changing the size via SetWindowPos can
-            // leave the chain in an inconsistent state and the window
-            // renders blank.
-            if (_windowMover.TryMove(ourHwnd, bounds.Value.X, bounds.Value.Y))
-            {
-                _currentBounds = bounds;
-                _log($"[overlay] following iRacing onto monitor at ({bounds.Value.X}, {bounds.Value.Y})");
-            }
-            else
-            {
-                _log("[overlay] SetWindowPos failed");
-            }
-        }
-        catch (Exception ex)
-        {
-            // Reposition must never crash the render loop.
-            _log($"[overlay] reposition error: {ex.GetType().Name}: {ex.Message}");
         }
     }
 }

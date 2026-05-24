@@ -60,7 +60,6 @@ internal static class Program
             new Win32ForegroundWindowQuery(),
             IRacingProcessNames.All);
 
-        var iRacingFinder = new IRacingWindowFinder();
         var monitorLocator = new MonitorLocator();
         var windowMover = new OverlayWindowMover();
         var styleManager = new WindowStyleManager();
@@ -81,10 +80,19 @@ internal static class Program
             }
         });
 
+        // Size the overlay window to cover the full virtual desktop so the
+        // user can drag widgets onto any monitor during Edit Mode. The
+        // window is repositioned to (XVirtualScreen, YVirtualScreen) by
+        // RadarOverlay.PostInitialized so monitors arranged left-of-primary
+        // are covered too.
+        var virtualDesktop = monitorLocator.GetVirtualDesktopBounds();
+        Log($"[overlay] virtual desktop bounds: {virtualDesktop.Width}x{virtualDesktop.Height} at ({virtualDesktop.X}, {virtualDesktop.Y})");
+
         var overlay = new RadarOverlay(
+            virtualDesktop.Width,
+            virtualDesktop.Height,
             frames,
             hostDetector,
-            iRacingFinder,
             monitorLocator,
             windowMover,
             styleManager,
