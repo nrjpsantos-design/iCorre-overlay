@@ -37,11 +37,20 @@ public sealed class RadarEngine
     {
         if (snapshot is null) return RadarFrame.Empty;
 
+        // The "focused car" is whatever the camera is following — in live this
+        // equals the player's own car, in replay it's whoever the user is
+        // watching. Using FocusedCar (instead of Player) makes the radar work
+        // in replay mode, which is the primary zero-risk testing surface.
+        var focused = snapshot.FocusedCar;
+
+        // The engine is active any time there is meaningful telemetry to
+        // render — either the user is driving live (IsOnTrack) or iRacing
+        // is playing back a recording (IsReplayPlaying). IsOnTrack alone
+        // would exclude every replay, which is wrong.
         var isActive =
-            snapshot.IsOnTrack
-            && snapshot.PlayerCarIdx >= 0
+            (snapshot.IsOnTrack || snapshot.IsReplayPlaying)
             && snapshot.Session.TrackLengthMeters > 0f
-            && snapshot.Player is not null;
+            && focused is not null;
 
         var spotterAlert = _spotter.Observe(snapshot.Proximity);
 
@@ -55,7 +64,6 @@ public sealed class RadarEngine
             };
         }
 
-        var player = snapshot.Player!;
         var trackLen = snapshot.Session.TrackLengthMeters;
 
         var entries = new List<RadarComputedEntry>(snapshot.Cars.Count);
@@ -64,10 +72,10 @@ public sealed class RadarEngine
 
         foreach (var car in snapshot.Cars)
         {
-            if (car.CarIdx == player.CarIdx) continue;
+            if (car.CarIdx == focused!.CarIdx) continue;
 
             var x = SpatialMath.CircularDeltaMeters(
-                player.LapDistPct, car.LapDistPct, trackLen);
+                focused.LapDistPct, car.LapDistPct, trackLen);
 
             var absX = MathF.Abs(x);
             if (absX <= _settings.CloseDistanceMeters && absX < closestX)
@@ -93,7 +101,7 @@ public sealed class RadarEngine
             }
 
             var (x, y) = RelativePositionSolver.Solve(
-                player.LapDistPct,
+                focused!.LapDistPct,
                 entry.Car.LapDistPct,
                 trackLen,
                 hint,
@@ -104,9 +112,9 @@ public sealed class RadarEngine
 
             var distance = MathF.Sqrt((x * x) + (y * y));
             var gap = GapCalculator.ComputeSignedGap(
-                player.EstTime,
+                focused.EstTime,
                 entry.Car.EstTime,
-                player.LapDistPct,
+                focused.LapDistPct,
                 entry.Car.LapDistPct,
                 lapTimeSeconds: 0f);
 

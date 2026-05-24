@@ -13,7 +13,9 @@ public class RadarEngineTests
         IEnumerable<CarState> others,
         CarLeftRight proximity = CarLeftRight.Clear,
         bool isOnTrack = true,
-        int playerCarIdx = 0)
+        bool isReplayPlaying = false,
+        int playerCarIdx = 0,
+        int? camCarIdx = null)
     {
         var cars = new List<CarState>
         {
@@ -33,12 +35,12 @@ public class RadarEngineTests
             CapturedAt = DateTimeOffset.UtcNow,
             SessionTick = 1234,
             PlayerCarIdx = playerCarIdx,
-            CamCarIdx = playerCarIdx,
+            CamCarIdx = camCarIdx ?? playerCarIdx,
             PlayerLapDistPct = playerLapDistPct,
             PlayerYawRad = 0f,
             Proximity = proximity,
             IsOnTrack = isOnTrack,
-            IsReplayPlaying = false,
+            IsReplayPlaying = isReplayPlaying,
             Cars = cars,
             Session = new SessionData
             {
@@ -46,7 +48,7 @@ public class RadarEngineTests
                 TrackConfigName = string.Empty,
                 TrackLengthMeters = TrackLen,
                 SessionType = "Practice",
-                IsReplay = false,
+                IsReplay = isReplayPlaying,
             },
         };
     }
@@ -219,4 +221,55 @@ public class RadarEngineTests
         // start from Clear, not jump straight to CarRight again.
         Assert.Equal(SpotterAlert.Clear, engine.Build(snap).Spotter);
     }
+
+    // ----- Replay mode regression coverage -----
+
+    [Fact]
+    public void ReplayMode_BuildsActiveFrame_EvenThoughIsOnTrackIsFalse()
+    {
+        // iRacing reports IsOnTrack=false in replay (there is no live driver).
+        // The engine must still produce a usable RadarFrame because the radar
+        // is one of the main zero-risk validation surfaces.
+        var engine = new RadarEngine();
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.50f,
+            others: new[] { MakeCar(1, 0.505f) },
+            isOnTrack: false,
+            isReplayPlaying: true);
+
+        var frame = engine.Build(snap);
+
+        Assert.True(frame.IsActive);
+        var dot = Assert.Single(frame.Dots);
+        Assert.Equal(25f, dot.X, precision: 1);   // 0.5% of 5000m ≈ 25m ahead
+    }
+
+    [Fact]
+    public void ReplayMode_UsesCameraCar_NotPlayerCar()
+    {
+        // Player is on car 0 (at 0.10), camera is on car 7 (at 0.60).
+        // Another car is at 0.605 — that's 25m ahead of CAR 7, not car 0.
+        // The radar must orient around the camera car.
+        var engine = new RadarEngine();
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.10f,
+            others: new[]
+            {
+                MakeCar(7,  0.60f,  name: "Camera target"),
+                MakeCar(12, 0.605f, name: "Ahead of camera"),
+            },
+            isOnTrack: false,
+            isReplayPlaying: true,
+            playerCarIdx: 0,
+            camCarIdx: 7);
+
+        var frame = engine.Build(snap);
+
+        // The dots list excludes the focused car (car 7) and includes the
+        // other car relative to car 7's position — 25m ahead.
+        var dot = Assert.Single(frame.Dots);
+        Assert.Equal(12, dot.CarIdx);
+        Assert.Equal(25f, dot.X, precision: 1);
+    }
+
 }

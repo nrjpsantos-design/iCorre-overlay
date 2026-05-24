@@ -158,7 +158,12 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
     {
         if (!_client.ReadInt("SessionTick", out var sessionTick)) return null;
         _client.ReadInt("PlayerCarIdx", out var playerCarIdx);
-        _client.ReadInt("CamCarIdx", out var camCarIdx);
+        if (!_client.ReadInt("CamCarIdx", out var camCarIdx))
+        {
+            // ReadInt sets value=0 on miss; rewrite to -1 so FocusedCar falls
+            // back to PlayerCarIdx instead of pointing at a real car 0.
+            camCarIdx = -1;
+        }
         _client.ReadFloat("Speed", out var speed);
         _client.ReadInt("Lap", out var lap);
         _client.ReadFloat("LapDistPct", out var playerLapDist);
