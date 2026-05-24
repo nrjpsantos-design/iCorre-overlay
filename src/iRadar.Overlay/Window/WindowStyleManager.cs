@@ -15,13 +15,20 @@ namespace iRadar.Overlay.Window;
 //   interactive (Fase 6 Edit Mode, not in this commit):
 //     both bits cleared, so the user can drag and resize widgets.
 //
-// Only user32 style-bit APIs are used — no hooks, no injection, no foreign-
-// process access.
+// After every style change we call SetWindowPos with SWP_FRAMECHANGED so the
+// non-client cache is invalidated and the new style takes effect immediately
+// — without this, MSDN warns the change can be ignored until the next paint.
 public sealed class WindowStyleManager
 {
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_NOACTIVATE = 0x08000000;
+
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE_SWP = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -29,13 +36,18 @@ public sealed class WindowStyleManager
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-    // Returns true if the new flags differ from what's already set; false if
-    // the call failed OR the bits were already in the requested state.
-    public bool MakeClickThrough(IntPtr hwnd)
-        => ApplyStyleChange(hwnd, addFlags: WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, removeFlags: 0);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy,
+        uint uFlags);
 
-    public bool MakeInteractive(IntPtr hwnd)
-        => ApplyStyleChange(hwnd, addFlags: 0, removeFlags: WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+    public StyleResult MakeClickThrough(IntPtr hwnd)
+        => Apply(hwnd, addFlags: WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, removeFlags: 0);
+
+    public StyleResult MakeInteractive(IntPtr hwnd)
+        => Apply(hwnd, addFlags: 0, removeFlags: WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
 
     public bool IsClickThrough(IntPtr hwnd)
     {
@@ -44,19 +56,46 @@ public sealed class WindowStyleManager
         return (current & WS_EX_TRANSPARENT) != 0;
     }
 
-    private static bool ApplyStyleChange(IntPtr hwnd, int addFlags, int removeFlags)
+    public int ReadExStyle(IntPtr hwnd)
+        => hwnd == IntPtr.Zero ? 0 : GetWindowLong(hwnd, GWL_EXSTYLE);
+
+    private static StyleResult Apply(IntPtr hwnd, int addFlags, int removeFlags)
     {
-        if (hwnd == IntPtr.Zero) return false;
+        if (hwnd == IntPtr.Zero)
+        {
+            return new StyleResult(false, "hwnd is zero", before: 0, after: 0);
+        }
 
-        var current = GetWindowLong(hwnd, GWL_EXSTYLE);
-        if (current == 0) return false;
+        var before = GetWindowLong(hwnd, GWL_EXSTYLE);
+        if (before == 0)
+        {
+            return new StyleResult(false, $"GetWindowLong returned 0 (err={Marshal.GetLastWin32Error()})", before: 0, after: 0);
+        }
 
-        var updated = (current | addFlags) & ~removeFlags;
-        if (updated == current) return false;
+        var target = (before | addFlags) & ~removeFlags;
+        if (target == before)
+        {
+            return new StyleResult(true, "style already matches target", before: before, after: before);
+        }
 
-        _ = SetWindowLong(hwnd, GWL_EXSTYLE, updated);
-        // Verify the change took effect.
-        var verify = GetWindowLong(hwnd, GWL_EXSTYLE);
-        return verify == updated;
+        _ = SetWindowLong(hwnd, GWL_EXSTYLE, target);
+        // SWP_FRAMECHANGED flushes the non-client cache so the new exstyle is
+        // honored immediately. Without this MSDN explicitly warns the change
+        // may not take effect.
+        SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE_SWP | SWP_FRAMECHANGED);
+
+        var after = GetWindowLong(hwnd, GWL_EXSTYLE);
+        var success = after == target;
+        var reason = success
+            ? $"style updated 0x{before:X8} -> 0x{after:X8}"
+            : $"verify mismatch: wanted 0x{target:X8}, got 0x{after:X8} (err={Marshal.GetLastWin32Error()})";
+
+        return new StyleResult(success, reason, before, after);
     }
 }
+
+public readonly record struct StyleResult(bool Success, string Reason, int Before, int After);

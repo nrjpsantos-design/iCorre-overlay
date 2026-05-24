@@ -29,7 +29,9 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
     private MonitorBounds? _currentBounds;
     private DateTime _lastMonitorCheckUtc = DateTime.MinValue;
-    private bool _clickThroughApplied;
+    private bool _clickThroughEverApplied;
+    private int _lastReportedExStyle;
+    private int _clickThroughLogFrames;
 
     public RadarOverlay(
         RadarFrameBuffer frames,
@@ -62,23 +64,19 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     protected override Task PostInitialized()
     {
         // PostInitialized runs after the SDL window is created, so our HWND
-        // exists by now. Do the first reposition and apply click-through
-        // immediately so iRacing's monitor gets covered AND mouse events
-        // pass through from the very first visible frame.
+        // exists by now. Reposition once; click-through is asserted on every
+        // Render frame (because SDL/CTO may overwrite our style bits).
         TryRepositionToHostMonitor(force: true);
-        TryApplyClickThrough();
+        TryEnsureClickThrough();
         return Task.CompletedTask;
     }
 
     protected override void Render()
     {
-        // If click-through failed at PostInitialized (HWND not ready yet),
-        // keep retrying every render frame until it sticks. This is cheap
-        // and converges within milliseconds.
-        if (!_clickThroughApplied)
-        {
-            TryApplyClickThrough();
-        }
+        // SDL / CTO may re-apply window styles on its own message-loop ticks,
+        // so we re-assert click-through on every frame. Logging is throttled
+        // to changes only — see TryEnsureClickThrough.
+        TryEnsureClickThrough();
 
         // Re-check monitor placement periodically so a user moving iRacing
         // across monitors mid-session sees the overlay follow.
@@ -100,28 +98,51 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         HelloWidget.Draw(snapshot, frame);
     }
 
-    private void TryApplyClickThrough()
+    private void TryEnsureClickThrough()
     {
         try
         {
             var hwnd = _windowMover.GetCurrentProcessMainWindow();
-            if (hwnd == IntPtr.Zero) return;
-
-            if (_styleManager.IsClickThrough(hwnd))
+            if (hwnd == IntPtr.Zero)
             {
-                _clickThroughApplied = true;
+                if (!_clickThroughEverApplied && _clickThroughLogFrames == 0)
+                {
+                    _log("[overlay] click-through: HWND not ready yet, will retry");
+                    _clickThroughLogFrames = 120;  // suppress repeats for ~2s @ 60Hz
+                }
+                if (_clickThroughLogFrames > 0) _clickThroughLogFrames--;
                 return;
             }
 
-            if (_styleManager.MakeClickThrough(hwnd))
+            var current = _styleManager.ReadExStyle(hwnd);
+            if (current != _lastReportedExStyle)
             {
-                _clickThroughApplied = true;
-                _log("[overlay] click-through enabled — clicks pass to iRacing (Edit Mode lands in Fase 6)");
+                _log($"[overlay] hwnd=0x{hwnd.ToInt64():X} exstyle changed: 0x{_lastReportedExStyle:X8} -> 0x{current:X8}");
+                _lastReportedExStyle = current;
+            }
+
+            var result = _styleManager.MakeClickThrough(hwnd);
+
+            if (result.Success && !_clickThroughEverApplied)
+            {
+                _clickThroughEverApplied = true;
+                _log($"[overlay] click-through enabled on hwnd=0x{hwnd.ToInt64():X}: {result.Reason}");
+                _log("[overlay] clicks now pass to iRacing — Edit Mode lands in Fase 6");
+            }
+            else if (!result.Success)
+            {
+                // Failures should be rare; throttle to once every ~2 seconds.
+                if (_clickThroughLogFrames == 0)
+                {
+                    _log($"[overlay] click-through MakeClickThrough failed: {result.Reason}");
+                    _clickThroughLogFrames = 120;
+                }
+                _clickThroughLogFrames--;
             }
         }
         catch (Exception ex)
         {
-            _log($"[overlay] could not apply click-through: {ex.GetType().Name}: {ex.Message}");
+            _log($"[overlay] click-through exception: {ex.GetType().Name}: {ex.Message}");
         }
     }
 
