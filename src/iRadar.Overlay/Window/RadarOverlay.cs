@@ -13,8 +13,16 @@ namespace iRadar.Overlay.Window;
 //
 // Multi-monitor: ClickableTransparentOverlay creates the window on the
 // primary monitor by default. We watch where iRacing's main window lives
-// and reposition / resize our window to cover the same monitor — checked
-// on PostInitialized and re-checked every few seconds during Render.
+// and reposition our window to cover the same monitor — checked on
+// PostInitialized and re-checked every few seconds during Render.
+//
+// Click-through: CTO automatically toggles WS_EX_TRANSPARENT based on
+// ImGui.GetIO().WantCaptureMouse. By making every widget use
+// ImGuiWindowFlags.NoInputs, WantCaptureMouse stays false and the flag
+// stays set — clicks always pass through. This class only OBSERVES the
+// extended style (logs changes) so we can detect regressions; we no
+// longer call SetWindowLong ourselves because that fought CTO's own
+// toggling logic and produced rapid flicker.
 public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 {
     private static readonly TimeSpan MonitorPollInterval = TimeSpan.FromSeconds(2);
@@ -29,9 +37,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
     private MonitorBounds? _currentBounds;
     private DateTime _lastMonitorCheckUtc = DateTime.MinValue;
-    private bool _clickThroughEverApplied;
     private int _lastReportedExStyle;
-    private int _clickThroughLogFrames;
+    private DateTime _lastStyleLogUtc = DateTime.MinValue;
 
     public RadarOverlay(
         RadarFrameBuffer frames,
@@ -64,19 +71,19 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     protected override Task PostInitialized()
     {
         // PostInitialized runs after the SDL window is created, so our HWND
-        // exists by now. Reposition once; click-through is asserted on every
-        // Render frame (because SDL/CTO may overwrite our style bits).
+        // exists by now. Reposition once; CTO manages click-through itself
+        // (driven by ImGui.GetIO().WantCaptureMouse — our widgets use
+        // NoInputs so it stays click-through permanently).
         TryRepositionToHostMonitor(force: true);
-        TryEnsureClickThrough();
         return Task.CompletedTask;
     }
 
     protected override void Render()
     {
-        // SDL / CTO may re-apply window styles on its own message-loop ticks,
-        // so we re-assert click-through on every frame. Logging is throttled
-        // to changes only — see TryEnsureClickThrough.
-        TryEnsureClickThrough();
+        // Observability: log changes to the window's extended style. With
+        // our NoInputs widgets, WS_EX_TRANSPARENT (0x20) should remain set
+        // continuously. If it flickers, that's a regression to investigate.
+        ObserveExStyle();
 
         // Re-check monitor placement periodically so a user moving iRacing
         // across monitors mid-session sees the overlay follow.
@@ -98,51 +105,27 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         HelloWidget.Draw(snapshot, frame);
     }
 
-    private void TryEnsureClickThrough()
+    private void ObserveExStyle()
     {
         try
         {
             var hwnd = _windowMover.GetCurrentProcessMainWindow();
-            if (hwnd == IntPtr.Zero)
-            {
-                if (!_clickThroughEverApplied && _clickThroughLogFrames == 0)
-                {
-                    _log("[overlay] click-through: HWND not ready yet, will retry");
-                    _clickThroughLogFrames = 120;  // suppress repeats for ~2s @ 60Hz
-                }
-                if (_clickThroughLogFrames > 0) _clickThroughLogFrames--;
-                return;
-            }
+            if (hwnd == IntPtr.Zero) return;
 
             var current = _styleManager.ReadExStyle(hwnd);
-            if (current != _lastReportedExStyle)
-            {
-                _log($"[overlay] hwnd=0x{hwnd.ToInt64():X} exstyle changed: 0x{_lastReportedExStyle:X8} -> 0x{current:X8}");
-                _lastReportedExStyle = current;
-            }
+            if (current == _lastReportedExStyle) return;
 
-            var result = _styleManager.MakeClickThrough(hwnd);
+            // Throttle so a busy flap doesn't spam the log file.
+            var now = DateTime.UtcNow;
+            if (now - _lastStyleLogUtc < TimeSpan.FromMilliseconds(500)) return;
 
-            if (result.Success && !_clickThroughEverApplied)
-            {
-                _clickThroughEverApplied = true;
-                _log($"[overlay] click-through enabled on hwnd=0x{hwnd.ToInt64():X}: {result.Reason}");
-                _log("[overlay] clicks now pass to iRacing — Edit Mode lands in Fase 6");
-            }
-            else if (!result.Success)
-            {
-                // Failures should be rare; throttle to once every ~2 seconds.
-                if (_clickThroughLogFrames == 0)
-                {
-                    _log($"[overlay] click-through MakeClickThrough failed: {result.Reason}");
-                    _clickThroughLogFrames = 120;
-                }
-                _clickThroughLogFrames--;
-            }
+            _lastStyleLogUtc = now;
+            _log($"[overlay] hwnd=0x{hwnd.ToInt64():X} exstyle: 0x{_lastReportedExStyle:X8} -> 0x{current:X8}");
+            _lastReportedExStyle = current;
         }
         catch (Exception ex)
         {
-            _log($"[overlay] click-through exception: {ex.GetType().Name}: {ex.Message}");
+            _log($"[overlay] observe-exstyle exception: {ex.GetType().Name}: {ex.Message}");
         }
     }
 

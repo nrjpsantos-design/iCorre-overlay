@@ -7,6 +7,14 @@ namespace iRadar.Overlay.Widgets;
 
 // Fase 4 placeholder — proves the rendering pipeline reaches the screen.
 // Replaced by the real radar / spotter / relative widgets in Fase 5.
+//
+// Click-through note: ImGuiWindowFlags.NoInputs makes this window never
+// claim mouse input, so ImGui.GetIO().WantCaptureMouse stays false even
+// when the cursor is over visible widget pixels. ClickableTransparentOverlay
+// uses WantCaptureMouse to decide whether to keep WS_EX_TRANSPARENT — with
+// NoInputs the flag stays set permanently and all clicks pass through to
+// iRacing. Edit Mode (Fase 6) will remove NoInputs only when active, so the
+// user can drag widgets, and re-apply it on exit.
 internal static class HelloWidget
 {
     private const string Title = "iRadar — Fase 4";
@@ -25,7 +33,8 @@ internal static class HelloWidget
             ImGuiWindowFlags.NoCollapse
             | ImGuiWindowFlags.NoFocusOnAppearing
             | ImGuiWindowFlags.NoNav
-            | ImGuiWindowFlags.NoSavedSettings;
+            | ImGuiWindowFlags.NoSavedSettings
+            | ImGuiWindowFlags.NoInputs;          // → click-through stays on
 
         if (!ImGui.Begin(Title, flags))
         {
