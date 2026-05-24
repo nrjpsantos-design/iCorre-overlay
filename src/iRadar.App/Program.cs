@@ -60,6 +60,7 @@ internal static class Program
         var iRacingFinder = new IRacingWindowFinder();
         var monitorLocator = new MonitorLocator();
         var windowMover = new OverlayWindowMover();
+        var styleManager = new WindowStyleManager();
 
         var overlay = new RadarOverlay(
             frames,
@@ -67,6 +68,7 @@ internal static class Program
             iRacingFinder,
             monitorLocator,
             windowMover,
+            styleManager,
             log: Log);
 
         using var cts = new CancellationTokenSource();

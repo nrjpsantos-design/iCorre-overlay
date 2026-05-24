@@ -24,10 +24,12 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     private readonly IRacingWindowFinder _iRacingFinder;
     private readonly MonitorLocator _monitorLocator;
     private readonly OverlayWindowMover _windowMover;
+    private readonly WindowStyleManager _styleManager;
     private readonly Action<string> _log;
 
     private MonitorBounds? _currentBounds;
     private DateTime _lastMonitorCheckUtc = DateTime.MinValue;
+    private bool _clickThroughApplied;
 
     public RadarOverlay(
         RadarFrameBuffer frames,
@@ -35,6 +37,7 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         IRacingWindowFinder iRacingFinder,
         MonitorLocator monitorLocator,
         OverlayWindowMover windowMover,
+        WindowStyleManager styleManager,
         Action<string>? log = null)
         : base("iRadar Overlay")
     {
@@ -43,12 +46,14 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         ArgumentNullException.ThrowIfNull(iRacingFinder);
         ArgumentNullException.ThrowIfNull(monitorLocator);
         ArgumentNullException.ThrowIfNull(windowMover);
+        ArgumentNullException.ThrowIfNull(styleManager);
 
         _frames = frames;
         _hostDetector = hostDetector;
         _iRacingFinder = iRacingFinder;
         _monitorLocator = monitorLocator;
         _windowMover = windowMover;
+        _styleManager = styleManager;
         _log = log ?? (_ => { });
 
         VSync = true;
@@ -57,16 +62,26 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     protected override Task PostInitialized()
     {
         // PostInitialized runs after the SDL window is created, so our HWND
-        // exists by now. Do the first reposition immediately so iRacing's
-        // monitor gets covered on first frame.
+        // exists by now. Do the first reposition and apply click-through
+        // immediately so iRacing's monitor gets covered AND mouse events
+        // pass through from the very first visible frame.
         TryRepositionToHostMonitor(force: true);
+        TryApplyClickThrough();
         return Task.CompletedTask;
     }
 
     protected override void Render()
     {
-        // Re-check periodically so a user moving iRacing across monitors
-        // mid-session sees the overlay follow.
+        // If click-through failed at PostInitialized (HWND not ready yet),
+        // keep retrying every render frame until it sticks. This is cheap
+        // and converges within milliseconds.
+        if (!_clickThroughApplied)
+        {
+            TryApplyClickThrough();
+        }
+
+        // Re-check monitor placement periodically so a user moving iRacing
+        // across monitors mid-session sees the overlay follow.
         var now = DateTime.UtcNow;
         if (now - _lastMonitorCheckUtc >= MonitorPollInterval)
         {
@@ -83,6 +98,31 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         var frame = _frames.Frame;
 
         HelloWidget.Draw(snapshot, frame);
+    }
+
+    private void TryApplyClickThrough()
+    {
+        try
+        {
+            var hwnd = _windowMover.GetCurrentProcessMainWindow();
+            if (hwnd == IntPtr.Zero) return;
+
+            if (_styleManager.IsClickThrough(hwnd))
+            {
+                _clickThroughApplied = true;
+                return;
+            }
+
+            if (_styleManager.MakeClickThrough(hwnd))
+            {
+                _clickThroughApplied = true;
+                _log("[overlay] click-through enabled — clicks pass to iRacing (Edit Mode lands in Fase 6)");
+            }
+        }
+        catch (Exception ex)
+        {
+            _log($"[overlay] could not apply click-through: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     private void TryRepositionToHostMonitor(bool force)

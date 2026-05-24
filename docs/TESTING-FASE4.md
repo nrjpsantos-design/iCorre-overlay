@@ -99,7 +99,9 @@ topo, e o `Tick` aumenta a cada ~16ms.
 - [ ] O fundo é transparente (você vê o iRacing através dele, só o texto e o
       título da janela ImGui são visíveis)
 - [ ] Você consegue **clicar através** da janela (ex.: clique no botão de
-      pause do iRacing onde a janela está sobreposta — o iRacing responde)
+      pause do iRacing onde a janela está sobreposta — o iRacing responde,
+      NÃO recebe efeito de Alt+Tab)
+- [ ] Console mostra `[overlay] click-through enabled` na inicialização
 - [ ] Quando você Alt+Tab para outra aplicação (Chrome, Notepad, etc.) o
       overlay **some** — `HostProcessDetector` viu que o iRacing não está
       mais em foreground
