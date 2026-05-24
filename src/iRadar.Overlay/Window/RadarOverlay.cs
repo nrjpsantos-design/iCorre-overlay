@@ -102,7 +102,13 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         var snapshot = _frames.Snapshot;
         var frame = _frames.Frame;
 
-        HelloWidget.Draw(snapshot, frame);
+        StatusWidget.Draw(snapshot, frame);
+        RadarWidget.Draw(frame);
+        RelativeWidget.Draw(frame);
+        if (frame is not null)
+        {
+            SpotterWidget.Draw(frame.Spotter);
+        }
     }
 
     private void ObserveExStyle()
