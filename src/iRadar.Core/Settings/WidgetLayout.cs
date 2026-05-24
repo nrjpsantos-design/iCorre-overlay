@@ -3,15 +3,16 @@ namespace iRadar.Core.Settings;
 // Position, size and visibility of a single overlay widget. Persisted to
 // disk via JsonUserSettingsStore so layout customisation survives restarts.
 //
-// Using float fields instead of System.Numerics.Vector2 keeps the JSON
-// representation flat and friendly (a Vector2 serializes to {X,Y} with
-// uppercase keys which collides with our camelCase policy).
+// Init-only properties (not `required`) so System.Text.Json can deserialize
+// via a parameterless constructor and the `with` expression works without
+// re-listing every field. Defaults exist for safety — UserSettings.Defaults
+// always populates real values, but a partial/corrupt JSON wouldn't crash.
 public sealed record WidgetLayout
 {
-    public required string Id { get; init; }
-    public required float X { get; init; }
-    public required float Y { get; init; }
-    public required float Width { get; init; }
-    public required float Height { get; init; }
-    public required bool Visible { get; init; }
+    public string Id { get; init; } = string.Empty;
+    public float X { get; init; }
+    public float Y { get; init; }
+    public float Width { get; init; } = 200f;
+    public float Height { get; init; } = 150f;
+    public bool Visible { get; init; } = true;
 }

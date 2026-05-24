@@ -34,7 +34,7 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     private readonly OverlayWindowMover _windowMover;
     private readonly WindowStyleManager _styleManager;
     private readonly EditModeController _editMode;
-    private readonly Widgets.WidgetLayoutManager _layouts;
+    private readonly WidgetLayoutManager _layouts;
     private readonly Action<string> _log;
 
     private MonitorBounds? _currentBounds;
@@ -50,7 +50,7 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         OverlayWindowMover windowMover,
         WindowStyleManager styleManager,
         EditModeController editMode,
-        Widgets.WidgetLayoutManager layouts,
+        WidgetLayoutManager layouts,
         Action<string>? log = null)
         : base("iRadar Overlay")
     {
