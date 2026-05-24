@@ -20,7 +20,7 @@ namespace iRadar.Overlay.Widgets;
 internal static class RadarWidget
 {
     private const string Title = "iRadar — Radar";
-    private const float DefaultRangeMeters = 15f;
+    private const float DefaultRangeMeters = 10f;
     private const float HalfRingLabelPadding = 4f;
 
     // Car-rectangle dimensions in screen pixels.

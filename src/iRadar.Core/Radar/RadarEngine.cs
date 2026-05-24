@@ -121,7 +121,7 @@ public sealed class RadarEngine
             var y = realY;
             if (hint == LateralHint.None && snapshot.Proximity == CarLeftRight.Off)
             {
-                y = HeuristicLateralOffset(entry.Car.CarIdx, _settings.SideBySideLateralMeters);
+                y = HeuristicLateralOffset(entry.Car.CarIdx);
             }
 
             var distance = MathF.Sqrt((x * x) + (y * y));
@@ -190,20 +190,27 @@ public sealed class RadarEngine
 
     private readonly record struct RadarComputedEntry(CarState Car, float X);
 
+    // Spacing between adjacent heuristic lanes, in meters. Independent of
+    // SideBySideLateralMeters (which is for the live spotter hint and
+    // represents a real lane width) — this is purely a visual nudge for the
+    // replay heuristic and is kept tight on purpose so cars don't look
+    // implausibly far apart laterally.
+    private const float HeuristicLaneStepMeters = 1.0f;
+
     // Five stable lanes derived from CarIdx so adjacent cars in a cluster
     // get visibly distinct lateral positions on the radar even when iRacing
     // hasn't published a real spotter hint. Returns offsets in meters in
-    // the range [-laneWidth, +laneWidth]:
-    //   lane = -2 → -laneWidth
-    //   lane = -1 → -0.5 * laneWidth
-    //   lane =  0 →  0
-    //   lane = +1 → +0.5 * laneWidth
-    //   lane = +2 → +laneWidth
-    private static float HeuristicLateralOffset(int carIdx, float laneWidth)
+    // the range [-2 × step, +2 × step]:
+    //   lane = -2 → -2.0 m
+    //   lane = -1 → -1.0 m
+    //   lane =  0 →  0.0 m
+    //   lane = +1 → +1.0 m
+    //   lane = +2 → +2.0 m
+    private static float HeuristicLateralOffset(int carIdx)
     {
         // (((idx % 5) + 5) % 5) is the standard "positive modulo" trick — keeps
         // the lane index in 0..4 even when carIdx is somehow negative.
         var lane = (((carIdx % 5) + 5) % 5) - 2;
-        return lane * (laneWidth * 0.5f);
+        return lane * HeuristicLaneStepMeters;
     }
 }

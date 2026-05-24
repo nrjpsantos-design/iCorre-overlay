@@ -54,9 +54,9 @@ iRacing (em vez de apenas o HelloWidget de antes):
 - [ ] **Retângulo branco vertical** maior no centro (player), com borda
       escura sutil
 - [ ] Dois círculos concêntricos (linha cinza) representam os anéis de
-      distância — o externo é **15m** (range total reduzido para focar
-      em perigos iminentes), o interno é **7m**, label "7m" perto do
-      interno
+      distância — o externo é **10m** (range total bem apertado para
+      focar em perigos iminentes), o interno é **5m**, label "5m" perto
+      do interno
 - [ ] Cruz cinza pelo centro (horizontal e vertical) para referência
 - [ ] **Retângulos verticais coloridos** maiores aparecem onde há carros
       próximos:
