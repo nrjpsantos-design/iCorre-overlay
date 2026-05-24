@@ -1,5 +1,8 @@
 using iRadar.Core.Radar;
+using iRadar.Core.Settings;
+using iRadar.Infrastructure.Settings;
 using iRadar.Infrastructure.Telemetry;
+using iRadar.Overlay.Widgets;
 using iRadar.Overlay.Window;
 
 namespace iRadar.App;
@@ -62,6 +65,22 @@ internal static class Program
         var windowMover = new OverlayWindowMover();
         var styleManager = new WindowStyleManager();
 
+        var settingsStore = new JsonUserSettingsStore(Log);
+        var settings = settingsStore.Load();
+        var layouts = new WidgetLayoutManager(settings.Widgets);
+
+        var hotkey = new GlobalHotkey();
+        var editMode = new EditModeController(hotkey, isActive =>
+        {
+            Log($"[overlay] edit mode {(isActive ? "ON" : "OFF")}");
+            if (!isActive)
+            {
+                // Toggle OFF: persist whatever the user dragged to.
+                settings.Widgets = layouts.Snapshot();
+                settingsStore.TrySave(settings);
+            }
+        });
+
         var overlay = new RadarOverlay(
             frames,
             hostDetector,
@@ -69,6 +88,8 @@ internal static class Program
             monitorLocator,
             windowMover,
             styleManager,
+            editMode,
+            layouts,
             log: Log);
 
         using var cts = new CancellationTokenSource();

@@ -1,5 +1,6 @@
 using System.Numerics;
 using iRadar.Core.Radar;
+using iRadar.Core.Settings;
 using ImGuiNET;
 
 namespace iRadar.Overlay.Widgets;
@@ -36,31 +37,35 @@ internal static class RadarWidget
     private const float ConeOuterHalfAngleRad = 0.75f;   // ~43°  → ~86° opening
     private const int ConeArcSegments = 18;
 
-    private static readonly Vector2 DefaultPos = new(20f, 200f);
-    private static readonly Vector2 DefaultSize = new(260f, 260f);
-
-    public static void Draw(RadarFrame? frame, float rangeMeters = DefaultRangeMeters)
+    public static void Draw(
+        RadarFrame? frame,
+        WidgetLayoutManager layouts,
+        bool editMode,
+        float rangeMeters = DefaultRangeMeters)
     {
-        ImGui.SetNextWindowPos(DefaultPos, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(DefaultSize, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowBgAlpha(WidgetTheme.DefaultBgAlpha);
-
-        if (!ImGui.Begin(Title, WidgetTheme.WidgetFlags))
+        if (!WidgetHelper.Begin(WidgetIds.Radar, Title, layouts, editMode, WidgetTheme.DefaultBgAlpha))
         {
-            ImGui.End();
             return;
         }
 
+        try
+        {
+            DrawRadarContents(frame, rangeMeters);
+        }
+        finally
+        {
+            WidgetHelper.End(WidgetIds.Radar, layouts, editMode);
+        }
+    }
+
+    private static void DrawRadarContents(RadarFrame? frame, float rangeMeters)
+    {
         var drawList = ImGui.GetWindowDrawList();
         var winPos = ImGui.GetWindowPos();
         var winSize = ImGui.GetWindowSize();
         var center = new Vector2(winPos.X + (winSize.X / 2f), winPos.Y + (winSize.Y / 2f));
         var radius = (MathF.Min(winSize.X, winSize.Y) / 2f) - 14f;
-        if (radius <= 0f)
-        {
-            ImGui.End();
-            return;
-        }
+        if (radius <= 0f) return;
 
         var pxPerMeter = radius / rangeMeters;
         var ringColor = WidgetTheme.U32(WidgetTheme.RangeRing);
@@ -139,8 +144,6 @@ internal static class RadarWidget
 
         // Player on top of everything.
         DrawCarRect(drawList, center, WidgetTheme.PlayerFill, isPlayer: true);
-
-        ImGui.End();
     }
 
     private static void DrawThreatCone(

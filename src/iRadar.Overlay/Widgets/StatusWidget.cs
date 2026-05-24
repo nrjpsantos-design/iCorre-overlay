@@ -1,5 +1,5 @@
-using System.Numerics;
 using iRadar.Core.Radar;
+using iRadar.Core.Settings;
 using iRadar.Core.Telemetry;
 using ImGuiNET;
 
@@ -7,47 +7,48 @@ namespace iRadar.Overlay.Widgets;
 
 // Small connection-status HUD shown in the top-left of the overlay. Confirms
 // at a glance that telemetry is flowing and shows the current track, tick,
-// car count and high-level state. Useful while setting up; can be hidden
-// from settings in Fase 6.
+// car count and high-level state. Position/size/visibility come from
+// WidgetLayoutManager so the user can reposition this in Edit Mode.
 internal static class StatusWidget
 {
     private const string Title = "iRadar — Status";
-    private static readonly Vector2 DefaultPos = new(20f, 20f);
-    private static readonly Vector2 DefaultSize = new(340f, 150f);
 
-    public static void Draw(TelemetrySnapshot? snapshot, RadarFrame? frame)
+    public static void Draw(
+        TelemetrySnapshot? snapshot,
+        RadarFrame? frame,
+        WidgetLayoutManager layouts,
+        bool editMode)
     {
-        ImGui.SetNextWindowPos(DefaultPos, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(DefaultSize, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowBgAlpha(WidgetTheme.DefaultBgAlpha);
-
-        if (!ImGui.Begin(Title, WidgetTheme.WidgetFlags))
+        if (!WidgetHelper.Begin(WidgetIds.Status, Title, layouts, editMode, WidgetTheme.DefaultBgAlpha))
         {
-            ImGui.End();
             return;
         }
 
-        if (snapshot is null)
+        try
         {
-            ImGui.TextColored(WidgetTheme.Waiting, "Waiting for iRacing telemetry...");
-            ImGui.TextColored(WidgetTheme.MutedText, "Open iRacing and load a session or replay.");
-            ImGui.End();
-            return;
+            if (snapshot is null)
+            {
+                ImGui.TextColored(WidgetTheme.Waiting, "Waiting for iRacing telemetry...");
+                ImGui.TextColored(WidgetTheme.MutedText, "Open iRacing and load a session or replay.");
+                return;
+            }
+
+            Label("Track", snapshot.Session.TrackName);
+            Label("Tick",  snapshot.SessionTick.ToString());
+            Label("Cars",  snapshot.Cars.Count.ToString());
+            Label("State", StateText(snapshot));
+
+            if (frame is { IsActive: true })
+            {
+                ImGui.Separator();
+                Label("Dots",    frame.Dots.Count.ToString());
+                Label("Spotter", frame.Spotter.ToString());
+            }
         }
-
-        Label("Track", snapshot.Session.TrackName);
-        Label("Tick",  snapshot.SessionTick.ToString());
-        Label("Cars",  snapshot.Cars.Count.ToString());
-        Label("State", StateText(snapshot));
-
-        if (frame is { IsActive: true })
+        finally
         {
-            ImGui.Separator();
-            Label("Dots",    frame.Dots.Count.ToString());
-            Label("Spotter", frame.Spotter.ToString());
+            WidgetHelper.End(WidgetIds.Status, layouts, editMode);
         }
-
-        ImGui.End();
     }
 
     private static void Label(string name, string value)

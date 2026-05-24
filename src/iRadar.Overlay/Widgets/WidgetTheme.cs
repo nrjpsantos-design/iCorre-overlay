@@ -30,20 +30,6 @@ internal static class WidgetTheme
 
     public const float DefaultBgAlpha = 0.45f;
 
-    // Standard set of flags for every iRadar widget — no inputs (so CTO
-    // keeps WS_EX_TRANSPARENT and clicks reach iRacing), no chrome.
-    public const ImGuiWindowFlags WidgetFlags =
-        ImGuiWindowFlags.NoTitleBar
-        | ImGuiWindowFlags.NoResize
-        | ImGuiWindowFlags.NoMove
-        | ImGuiWindowFlags.NoScrollbar
-        | ImGuiWindowFlags.NoCollapse
-        | ImGuiWindowFlags.NoFocusOnAppearing
-        | ImGuiWindowFlags.NoBringToFrontOnFocus
-        | ImGuiWindowFlags.NoNav
-        | ImGuiWindowFlags.NoInputs
-        | ImGuiWindowFlags.NoSavedSettings;
-
     public static Vector4 ColorFor(ThreatLevel t) => t switch
     {
         ThreatLevel.Danger => Danger,

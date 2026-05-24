@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using iRadar.Core.Radar;
+using iRadar.Core.Settings;
 using ImGuiNET;
 
 namespace iRadar.Overlay.Widgets;
@@ -14,32 +15,39 @@ internal static class RelativeWidget
     private const string Title = "iRadar — Relative";
     private const int DriverNameMaxLength = 16;
 
-    private static readonly Vector2 DefaultPos = new(300f, 20f);
-    private static readonly Vector2 DefaultSize = new(340f, 280f);
-
-    public static void Draw(RadarFrame? frame)
+    public static void Draw(RadarFrame? frame, WidgetLayoutManager layouts, bool editMode)
     {
-        if (frame is null || !frame.IsActive) return;
-
-        ImGui.SetNextWindowPos(DefaultPos, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(DefaultSize, ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowBgAlpha(WidgetTheme.DefaultBgAlpha);
-
-        if (!ImGui.Begin(Title, WidgetTheme.WidgetFlags))
+        // In Edit Mode we still want this draggable even when there's no
+        // active frame yet, so the user can position it pre-race. Show a
+        // tiny placeholder when frame is null/inactive.
+        if (!WidgetHelper.Begin(WidgetIds.Relative, Title, layouts, editMode, WidgetTheme.DefaultBgAlpha))
         {
-            ImGui.End();
             return;
         }
 
-        ImGui.TextColored(WidgetTheme.PanelLabel, "AHEAD");
-        DrawSection(frame.Ahead, WidgetTheme.ApproachAhead);
+        try
+        {
+            if (frame is null || !frame.IsActive)
+            {
+                if (editMode)
+                {
+                    ImGui.TextColored(WidgetTheme.MutedText, "(Relative panel — no data yet)");
+                }
+                return;
+            }
 
-        ImGui.Separator();
+            ImGui.TextColored(WidgetTheme.PanelLabel, "AHEAD");
+            DrawSection(frame.Ahead, WidgetTheme.ApproachAhead);
 
-        ImGui.TextColored(WidgetTheme.PanelLabel, "BEHIND");
-        DrawSection(frame.Behind, WidgetTheme.BehindFalling);
+            ImGui.Separator();
 
-        ImGui.End();
+            ImGui.TextColored(WidgetTheme.PanelLabel, "BEHIND");
+            DrawSection(frame.Behind, WidgetTheme.BehindFalling);
+        }
+        finally
+        {
+            WidgetHelper.End(WidgetIds.Relative, layouts, editMode);
+        }
     }
 
     private static void DrawSection(IReadOnlyList<RelativeEntry> entries, Vector4 sectionColor)

@@ -33,6 +33,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     private readonly MonitorLocator _monitorLocator;
     private readonly OverlayWindowMover _windowMover;
     private readonly WindowStyleManager _styleManager;
+    private readonly EditModeController _editMode;
+    private readonly Widgets.WidgetLayoutManager _layouts;
     private readonly Action<string> _log;
 
     private MonitorBounds? _currentBounds;
@@ -47,6 +49,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         MonitorLocator monitorLocator,
         OverlayWindowMover windowMover,
         WindowStyleManager styleManager,
+        EditModeController editMode,
+        Widgets.WidgetLayoutManager layouts,
         Action<string>? log = null)
         : base("iRadar Overlay")
     {
@@ -56,6 +60,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         ArgumentNullException.ThrowIfNull(monitorLocator);
         ArgumentNullException.ThrowIfNull(windowMover);
         ArgumentNullException.ThrowIfNull(styleManager);
+        ArgumentNullException.ThrowIfNull(editMode);
+        ArgumentNullException.ThrowIfNull(layouts);
 
         _frames = frames;
         _hostDetector = hostDetector;
@@ -63,6 +69,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         _monitorLocator = monitorLocator;
         _windowMover = windowMover;
         _styleManager = styleManager;
+        _editMode = editMode;
+        _layouts = layouts;
         _log = log ?? (_ => { });
 
         VSync = true;
@@ -80,9 +88,14 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
     protected override void Render()
     {
+        // Edit Mode hotkey first — the toggle decides whether ImGui windows
+        // accept input below.
+        _editMode.Tick();
+
         // Observability: log changes to the window's extended style. With
-        // our NoInputs widgets, WS_EX_TRANSPARENT (0x20) should remain set
-        // continuously. If it flickers, that's a regression to investigate.
+        // our NoInputs widgets (locked mode), WS_EX_TRANSPARENT (0x20) should
+        // remain set continuously. In Edit Mode it will toggle as the user
+        // hovers widgets — that's the expected behavior.
         ObserveExStyle();
 
         // Re-check monitor placement periodically so a user moving iRacing
@@ -94,7 +107,9 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
             TryRepositionToHostMonitor(force: false);
         }
 
-        if (!_hostDetector.IsHostInForeground())
+        // In Edit Mode we render even when iRacing isn't focused — the user
+        // is positioning widgets and may be in another window for the moment.
+        if (!_editMode.IsActive && !_hostDetector.IsHostInForeground())
         {
             return;
         }
@@ -102,14 +117,14 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         var snapshot = _frames.Snapshot;
         var frame = _frames.Frame;
 
-        // Proximity feedback that used to live in SpotterWidget (left/right
-        // edge bars) now renders as translucent halos on Close/Danger dots
-        // inside the RadarWidget itself, per the user's reference imagery.
-        // iRacing's native voice/text spotter ("Left side.") still works in
-        // live sessions and complements the visual cue.
-        StatusWidget.Draw(snapshot, frame);
-        RadarWidget.Draw(frame);
-        RelativeWidget.Draw(frame);
+        StatusWidget.Draw(snapshot, frame, _layouts, _editMode.IsActive);
+        RadarWidget.Draw(frame, _layouts, _editMode.IsActive);
+        RelativeWidget.Draw(frame, _layouts, _editMode.IsActive);
+
+        if (_editMode.IsActive)
+        {
+            EditModeBanner.Draw();
+        }
     }
 
     private void ObserveExStyle()
