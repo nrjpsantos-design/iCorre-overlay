@@ -63,19 +63,19 @@ public sealed class WindowStyleManager
     {
         if (hwnd == IntPtr.Zero)
         {
-            return new StyleResult(false, "hwnd is zero", before: 0, after: 0);
+            return new StyleResult(false, "hwnd is zero", 0, 0);
         }
 
         var before = GetWindowLong(hwnd, GWL_EXSTYLE);
         if (before == 0)
         {
-            return new StyleResult(false, $"GetWindowLong returned 0 (err={Marshal.GetLastWin32Error()})", before: 0, after: 0);
+            return new StyleResult(false, $"GetWindowLong returned 0 (err={Marshal.GetLastWin32Error()})", 0, 0);
         }
 
         var target = (before | addFlags) & ~removeFlags;
         if (target == before)
         {
-            return new StyleResult(true, "style already matches target", before: before, after: before);
+            return new StyleResult(true, "style already matches target", before, before);
         }
 
         _ = SetWindowLong(hwnd, GWL_EXSTYLE, target);
