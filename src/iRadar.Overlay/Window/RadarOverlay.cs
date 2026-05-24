@@ -87,23 +87,48 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
 
     private void TryRepositionToHostMonitor(bool force)
     {
-        var iRacingHwnd = _iRacingFinder.TryFindMainWindow();
-        if (iRacingHwnd is null || iRacingHwnd == IntPtr.Zero)
+        try
         {
-            return;
+            var iRacingHwnd = _iRacingFinder.TryFindMainWindow();
+            if (iRacingHwnd is null || iRacingHwnd == IntPtr.Zero)
+            {
+                if (force) _log("[overlay] iRacing window not found yet — will retry");
+                return;
+            }
+
+            var bounds = _monitorLocator.GetMonitorBoundsFor(iRacingHwnd.Value);
+            if (bounds is null)
+            {
+                if (force) _log("[overlay] could not determine iRacing's monitor — will retry");
+                return;
+            }
+            if (!force && bounds.Value.Equals(_currentBounds)) return;
+
+            var ourHwnd = _windowMover.GetCurrentProcessMainWindow();
+            if (ourHwnd == IntPtr.Zero)
+            {
+                if (force) _log("[overlay] our own window HWND not yet ready — will retry");
+                return;
+            }
+
+            // Only translate (X, Y) — do NOT resize. CTO sized the swap chain
+            // at construction time; changing the size via SetWindowPos can
+            // leave the chain in an inconsistent state and the window
+            // renders blank.
+            if (_windowMover.TryMove(ourHwnd, bounds.Value.X, bounds.Value.Y))
+            {
+                _currentBounds = bounds;
+                _log($"[overlay] following iRacing onto monitor at ({bounds.Value.X}, {bounds.Value.Y})");
+            }
+            else
+            {
+                _log("[overlay] SetWindowPos failed");
+            }
         }
-
-        var bounds = _monitorLocator.GetMonitorBoundsFor(iRacingHwnd.Value);
-        if (bounds is null) return;
-        if (!force && bounds.Value.Equals(_currentBounds)) return;
-
-        var ourHwnd = _windowMover.GetCurrentProcessMainWindow();
-        if (ourHwnd == IntPtr.Zero) return;
-
-        if (_windowMover.TryMoveAndResize(ourHwnd, bounds.Value))
+        catch (Exception ex)
         {
-            _currentBounds = bounds;
-            _log($"[overlay] following iRacing onto monitor {bounds.Value.Width}x{bounds.Value.Height} at ({bounds.Value.X}, {bounds.Value.Y})");
+            // Reposition must never crash the render loop.
+            _log($"[overlay] reposition error: {ex.GetType().Name}: {ex.Message}");
         }
     }
 }

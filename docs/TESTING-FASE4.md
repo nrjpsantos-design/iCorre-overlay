@@ -126,6 +126,25 @@ verdade (continua zero-risco porque é offline):
 
 ---
 
+## Onde olhar diagnósticos
+
+Além do console, o app sempre escreve em:
+
+```
+%LocalAppData%\iRadar\debug.log
+```
+
+Abre com:
+```powershell
+notepad $env:LOCALAPPDATA\iRadar\debug.log
+```
+
+Se o console estiver mudo ou se você quiser revisar histórico de execuções,
+esse arquivo tem todas as linhas que vão para o console + erros não tratados
+com stack trace.
+
+---
+
 ## Troubleshooting
 
 ### A janela não aparece

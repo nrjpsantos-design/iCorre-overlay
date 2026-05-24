@@ -21,19 +21,24 @@ internal static class Program
     private static int Main(string[] args)
         => MainAsync(args).GetAwaiter().GetResult();
 
+    private static void Log(string message)
+    {
+        Console.WriteLine(message);
+        FileLog.Write(message);
+    }
+
     private static async Task<int> MainAsync(string[] args)
     {
-        Console.WriteLine("iRadar — starting");
-        Console.WriteLine("Anti-cheat boundary: external process, IRSDK shared memory only.");
-        Console.WriteLine("Close the overlay window (Alt+F4) or press Ctrl+C in this console to stop.");
-        Console.WriteLine();
+        Log($"iRadar — starting (log: {FileLog.Path})");
+        Log("Anti-cheat boundary: external process, IRSDK shared memory only.");
+        Log("Close the overlay window (Alt+F4) or press Ctrl+C to stop.");
+        Log(string.Empty);
 
         var frames = new RadarFrameBuffer();
         var engine = new RadarEngine();
 
         var telemetry = new IrsdkTelemetrySource();
-        telemetry.StateChanged += (_, state) =>
-            Console.WriteLine($"[telemetry] {state}");
+        telemetry.StateChanged += (_, state) => Log($"[telemetry] {state}");
 
         telemetry.SnapshotReceived += (_, snapshot) =>
         {
@@ -44,7 +49,7 @@ internal static class Program
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[engine] {ex.GetType().Name}: {ex.Message}");
+                Log($"[engine] {ex.GetType().Name}: {ex.Message}");
             }
         };
 
@@ -62,7 +67,7 @@ internal static class Program
             iRacingFinder,
             monitorLocator,
             windowMover,
-            log: msg => Console.WriteLine(msg));
+            log: Log);
 
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
@@ -75,14 +80,22 @@ internal static class Program
         try
         {
             await telemetry.StartAsync(cts.Token).ConfigureAwait(false);
-            Console.WriteLine("[overlay] starting render loop");
+            Log("[overlay] starting render loop");
             // ClickableTransparentOverlay.Overlay.Run() runs the message
             // pump and blocks until the window is closed.
             await overlay.Run().ConfigureAwait(false);
         }
+        catch (Exception ex)
+        {
+            // Catch-all so a startup crash is captured in the log file even
+            // when the console isn't visible.
+            Log($"[fatal] {ex.GetType().FullName}: {ex.Message}");
+            Log(ex.StackTrace ?? "(no stack trace)");
+            return 1;
+        }
         finally
         {
-            Console.WriteLine("[shutdown] stopping telemetry");
+            Log("[shutdown] stopping telemetry");
             await telemetry.DisposeAsync().ConfigureAwait(false);
             overlay.Dispose();
         }

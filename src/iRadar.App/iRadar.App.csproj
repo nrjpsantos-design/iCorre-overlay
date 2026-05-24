@@ -1,7 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <!--
+      During Fase 4/5 the app outputs diagnostic logging to the console. A
+      WinExe child of `dotnet run` does not get its stdio attached to the
+      parent terminal AND does not receive Ctrl+C, which makes debugging
+      painful. We use Exe (console subsystem) during active development;
+      switch to WinExe once the overlay is feature-complete and we no
+      longer need the console.
+    -->
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Description>Composition root: wires Telemetry + Radar + Overlay + Infrastructure into the running executable.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
