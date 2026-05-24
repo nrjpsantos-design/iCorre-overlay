@@ -63,12 +63,14 @@ iRacing (em vez de apenas o HelloWidget de antes):
   - cinza fraco quando longe (Safe)
   - **laranja** quando perto (Close)
   - **vermelho** quando muito perto (Danger)
-- [ ] **Halo direcional ao redor do PLAYER** (não mais ao redor dos
-      outros carros): quando há um carro Close/Danger no radar, aparece
-      um halo translúcido **deslocado em direção ao carro mais
-      ameaçador**. Cor laranja para Close, vermelha para Danger.
-- [ ] Player rectangle continua sempre **centralizado** — só o halo
-      "vaza" para o lado da ameaça
+- [ ] **Cone direcional centrado no PLAYER**: quando há um carro
+      Close/Danger no radar, aparece um cone translúcido com ápice no
+      player apontando exatamente na direção do carro mais ameaçador.
+      Cor laranja para Close, vermelha para Danger.
+- [ ] Player rectangle continua sempre **centralizado** — o cone se
+      abre a partir do player e aponta pra ameaça (frente, trás,
+      lateral, ou diagonal)
+- [ ] Abertura do cone é constante (~60°); só a direção muda
 - [ ] Em replay com vários carros próximos: dots espalhados em 5 "lanes"
       laterais (heurístico, não posição real) para diferenciação visual.
       Com range reduzido para 15m, o espalhamento fica ainda mais visível

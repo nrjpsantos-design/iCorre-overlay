@@ -5,11 +5,10 @@ using ImGuiNET;
 namespace iRadar.Overlay.Widgets;
 
 // Circular radar — player drawn as a white vertical rectangle at the center,
-// other cars as colored vertical rectangles. The translucent proximity halo
-// is centered on the PLAYER (not on the other cars) and is offset slightly
-// in the direction of the worst nearby threat, so the user gets a directional
-// cue ("car closing in from the left-rear") without losing the player as the
-// visual anchor.
+// other cars as colored vertical rectangles. Proximity feedback is a
+// directional CONE (sector) with its apex on the player and opening toward
+// the single worst nearby threat. Player stays at the geometric center; the
+// cone is the only thing that "rotates" with the threat direction.
 //
 // Coordinate translation (player at origin):
 //   world.X (ahead, +)   →  screen.Y (-)    (up is "ahead")
@@ -24,17 +23,18 @@ internal static class RadarWidget
     private const float DefaultRangeMeters = 15f;
     private const float HalfRingLabelPadding = 4f;
 
-    // Car-rectangle dimensions in screen pixels. Made larger than the Fase 5.2
-    // version per user feedback for easier glanceability while racing.
+    // Car-rectangle dimensions in screen pixels.
     private const float CarWidthPx = 12f;
     private const float CarHeightPx = 24f;
 
-    // Directional player halo — leans toward the worst threat. Offset is the
-    // pixel distance from player center to halo center; radii are the inner
-    // (bright) and outer (softer) glow rings.
-    private const float HaloOffsetPx = 14f;
-    private const float HaloInnerRadiusPx = 22f;
-    private const float HaloOuterRadiusPx = 34f;
+    // Threat cone — apex at player center, opens toward worst threat. Inner
+    // bright sector + outer fainter sector give the glow effect without any
+    // shader work.
+    private const float ConeInnerRadiusPx = 56f;
+    private const float ConeOuterRadiusPx = 72f;
+    private const float ConeInnerHalfAngleRad = 0.55f;   // ~31°  → ~62° opening
+    private const float ConeOuterHalfAngleRad = 0.75f;   // ~43°  → ~86° opening
+    private const int ConeArcSegments = 18;
 
     private static readonly Vector2 DefaultPos = new(20f, 200f);
     private static readonly Vector2 DefaultSize = new(260f, 260f);
@@ -114,11 +114,11 @@ internal static class RadarWidget
             }
         }
 
-        // Player halo, drawn FIRST so dots and the player rectangle paint on
+        // Threat cone, drawn FIRST so dots and the player rectangle paint on
         // top of it.
         if (worstThreat is not null)
         {
-            DrawPlayerHalo(drawList, center, worstThreatDirection, worstThreat.Threat);
+            DrawThreatCone(drawList, center, worstThreatDirection, worstThreat.Threat);
         }
 
         // Other cars — plain colored rectangles, no individual halos (the
@@ -143,31 +143,48 @@ internal static class RadarWidget
         ImGui.End();
     }
 
-    private static void DrawPlayerHalo(
+    private static void DrawThreatCone(
         ImDrawListPtr drawList,
-        Vector2 playerCenter,
+        Vector2 apex,
         Vector2 directionPx,
         ThreatLevel threat)
     {
-        var halo = WidgetTheme.HaloFor(threat);
-        if (halo.W <= 0f) return;
+        var color = WidgetTheme.HaloFor(threat);
+        if (color.W <= 0f) return;
 
-        // Normalize the direction so the halo offset is constant in pixels
-        // regardless of how far away the threat is.
         var length = MathF.Sqrt((directionPx.X * directionPx.X) + (directionPx.Y * directionPx.Y));
         if (length < 0.01f) return;
-        var ux = directionPx.X / length;
-        var uy = directionPx.Y / length;
 
-        var haloCenter = new Vector2(
-            playerCenter.X + (ux * HaloOffsetPx),
-            playerCenter.Y + (uy * HaloOffsetPx));
+        // Angle of the threat relative to the +X axis (ImGui screen space:
+        // +X right, +Y down, atan2 returns radians in (-π, π]).
+        var angle = MathF.Atan2(directionPx.Y, directionPx.X);
 
-        // Two-layer glow: a softer outer ring + brighter inner disc.
-        var outer = halo;
-        outer.W *= 0.5f;
-        drawList.AddCircleFilled(haloCenter, HaloOuterRadiusPx, WidgetTheme.U32(outer), 28);
-        drawList.AddCircleFilled(haloCenter, HaloInnerRadiusPx, WidgetTheme.U32(halo), 24);
+        // Outer (fainter, wider) layer first, then inner (brighter, tighter)
+        // — same trick as the offset halo but as a sector that points exactly
+        // at the threat.
+        var outer = color;
+        outer.W *= 0.45f;
+        DrawCone(drawList, apex, angle, ConeOuterRadiusPx, ConeOuterHalfAngleRad, outer);
+        DrawCone(drawList, apex, angle, ConeInnerRadiusPx, ConeInnerHalfAngleRad, color);
+    }
+
+    private static void DrawCone(
+        ImDrawListPtr drawList,
+        Vector2 apex,
+        float centerAngle,
+        float radius,
+        float halfAngle,
+        Vector4 color)
+    {
+        drawList.PathClear();
+        drawList.PathLineTo(apex);
+        drawList.PathArcTo(
+            apex,
+            radius,
+            centerAngle - halfAngle,
+            centerAngle + halfAngle,
+            ConeArcSegments);
+        drawList.PathFillConvex(WidgetTheme.U32(color));
     }
 
     private static void DrawCarRect(ImDrawListPtr drawList, Vector2 center, Vector4 fill, bool isPlayer)
