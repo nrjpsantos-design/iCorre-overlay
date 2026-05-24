@@ -245,6 +245,79 @@ public class RadarEngineTests
     }
 
     [Fact]
+    public void ReplayMode_SpreadsDotsLaterally_WhenSpotterUnavailable()
+    {
+        // In replay iRacing reports Proximity = Off. Without the live spotter
+        // hint, every dot would otherwise pile onto the radar's vertical
+        // centerline. The engine applies a stable per-CarIdx heuristic so
+        // close cars get distinct Y positions in visualization.
+        var engine = new RadarEngine();
+        var cars = new[]
+        {
+            MakeCar(1, 0.505f, name: "A"),   // 25m ahead — CarIdx 1 → lane -1
+            MakeCar(2, 0.505f, name: "B"),   // 25m ahead — CarIdx 2 → lane  0
+            MakeCar(3, 0.505f, name: "C"),   // 25m ahead — CarIdx 3 → lane +1
+        };
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.50f,
+            others: cars,
+            proximity: CarLeftRight.Off,
+            isOnTrack: false,
+            isReplayPlaying: true);
+
+        var frame = engine.Build(snap);
+
+        Assert.Equal(3, frame.Dots.Count);
+        var byIdx = frame.Dots.ToDictionary(d => d.CarIdx);
+
+        // Same longitudinal position for all three.
+        Assert.All(frame.Dots, d => Assert.Equal(25f, d.X, precision: 1));
+
+        // Distinct Y, monotonically increasing with CarIdx mod 5.
+        Assert.True(byIdx[1].Y < byIdx[2].Y, $"CarIdx 1 Y={byIdx[1].Y} should be < CarIdx 2 Y={byIdx[2].Y}");
+        Assert.True(byIdx[2].Y < byIdx[3].Y, $"CarIdx 2 Y={byIdx[2].Y} should be < CarIdx 3 Y={byIdx[3].Y}");
+        Assert.Equal(0f, byIdx[2].Y);
+    }
+
+    [Fact]
+    public void LiveMode_DoesNotApplyHeuristic_WhenSpotterIsClear()
+    {
+        // Spotter says Clear (not Off) — we're live, just no cars near.
+        // No heuristic; dots stay on the centerline.
+        var engine = new RadarEngine();
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.50f,
+            others: new[] { MakeCar(1, 0.505f), MakeCar(2, 0.505f) },
+            proximity: CarLeftRight.Clear);
+
+        var frame = engine.Build(snap);
+        Assert.All(frame.Dots, d => Assert.Equal(0f, d.Y));
+    }
+
+    [Fact]
+    public void HeuristicSpread_DoesNotElevateThreat()
+    {
+        // Threat is computed from the REAL position (Y=0 with no spotter
+        // hint), not the heuristic Y. A car at +X=25m with heuristic
+        // Y=±1.75m should not jump from Safe to Close due to fake distance.
+        var engine = new RadarEngine(RadarSettings.Default with
+        {
+            CloseDistanceMeters = 20f,
+        });
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.50f,
+            others: new[] { MakeCar(1, 0.505f) },   // 25m > 20m → Safe
+            proximity: CarLeftRight.Off,
+            isOnTrack: false,
+            isReplayPlaying: true);
+
+        var frame = engine.Build(snap);
+        var dot = Assert.Single(frame.Dots);
+        Assert.Equal(ThreatLevel.Safe, dot.Threat);
+        Assert.NotEqual(0f, dot.Y);   // heuristic still applied visually
+    }
+
+    [Fact]
     public void ReplayMode_UsesCameraCar_NotPlayerCar()
     {
         // Player is on car 0 (at 0.10), camera is on car 7 (at 0.60).

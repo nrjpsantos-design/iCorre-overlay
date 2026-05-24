@@ -102,13 +102,14 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         var snapshot = _frames.Snapshot;
         var frame = _frames.Frame;
 
+        // Proximity feedback that used to live in SpotterWidget (left/right
+        // edge bars) now renders as translucent halos on Close/Danger dots
+        // inside the RadarWidget itself, per the user's reference imagery.
+        // iRacing's native voice/text spotter ("Left side.") still works in
+        // live sessions and complements the visual cue.
         StatusWidget.Draw(snapshot, frame);
         RadarWidget.Draw(frame);
         RelativeWidget.Draw(frame);
-        if (frame is not null)
-        {
-            SpotterWidget.Draw(frame.Spotter);
-        }
     }
 
     private void ObserveExStyle()

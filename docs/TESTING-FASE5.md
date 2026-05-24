@@ -51,18 +51,23 @@ iRacing (em vez de apenas o HelloWidget de antes):
       em sessão ao vivo)
 
 ### Radar widget
-- [ ] Triângulo verde aparece no centro, apontando para cima
+- [ ] **Retângulo branco vertical** no centro (player), com borda escura
+      sutil
 - [ ] Dois círculos concêntricos (linha cinza) representam os anéis de
       distância — o externo é 50m, o interno é 25m, label "25m" perto
       do interno
 - [ ] Cruz cinza pelo centro (horizontal e vertical) para referência
-- [ ] Bolinhas aparecem onde há carros próximos (até 50m)
-- [ ] Cor das bolinhas:
-  - cinza-esverdeado quando longe (Safe)
-  - amarelo quando perto (Close, até ~20m)
-  - vermelho quando muito perto (Danger, até ~8m)
-- [ ] Quando o replay avança e carros mudam de posição relativa ao
-      focused car, as bolinhas se movem suavemente
+- [ ] **Retângulos verticais coloridos** aparecem onde há carros próximos:
+  - cinza fraco quando longe (Safe)
+  - **laranja** quando perto (Close, até ~20m)
+  - **vermelho** quando muito perto (Danger, até ~8m)
+- [ ] **Halo translúcido ao redor de carros Close/Danger** (laranja/vermelho)
+      — é o indicador de proximidade que substituiu as barras laterais
+- [ ] Em replay com vários carros próximos: dots espalhados em 5 "lanes"
+      laterais (heurístico, não posição real) para diferenciação visual
+- [ ] Em sessão ao vivo: dots laterais usam o spotter real do iRacing
+      (precisão real quando há `CarLeft`/`CarRight`)
+- [ ] Quando o replay avança, retângulos se movem suavemente
 
 ### Relative widget
 - [ ] Aparece à direita do Status
@@ -74,13 +79,19 @@ iRacing (em vez de apenas o HelloWidget de antes):
 - [ ] Carros no pitlane aparecem em cinza com sufixo `(pit)`
 - [ ] Quando não há ninguém em range: `(none in range)` em cinza
 
-### Spotter widget (só valida em sessão ao vivo — Test Drive offline ok)
-- [ ] **Em replay**: barras laterais sempre invisíveis (esperado)
-- [ ] **Em Test Drive sozinho**: barras invisíveis (sem ninguém pra
-      acusar)
-- [ ] **Em AI Race offline** (Test Drive com AI): barra esquerda fica
-      amarela quando um AI passa pela sua esquerda, vermelha se dois,
-      mesma coisa pra direita
+### Spotter (agora integrado ao RadarWidget)
+A versão anterior tinha barras laterais separadas; foram removidas. Agora a
+proximidade aparece como halo translúcido nos retângulos dos carros dentro
+do próprio RadarWidget:
+
+- [ ] **Em replay**: halos coloridos aparecem quando carros entram nas
+      zonas Close/Danger (orange/red); o spotter LEFT/RIGHT do iRacing
+      em si fica indisponível mas o visual de proximidade no radar
+      compensa
+- [ ] **Em sessão ao vivo** (Test Drive + IA): o spotter do iRacing
+      também acrescenta posicionamento lateral mais preciso (carro mais
+      próximo ganha hint de lado, conforme `CarLeftRight`); halos
+      continuam funcionando independente
 
 ### Click-through (regressão da Fase 4)
 - [ ] Cursor passando pelos widgets não muda comportamento
@@ -99,14 +110,20 @@ iRacing (em vez de apenas o HelloWidget de antes):
   window. Edit Mode (com hotkey `Ctrl+Alt+E`) é a próxima fase (Fase 6).
 
 - **Lateral aproximado**: como o iRacing não expõe (x, y) absolutos para
-  outros carros, a posição lateral dos dots no radar é uma aproximação
-  baseada na hint `CarLeftRight`. Carros ao seu lado aparecem deslocados
-  3.5m para a esquerda/direita do centro; cães em outras situações
-  ficam alinhados ao eixo central. Em curvas isto pode parecer
-  impreciso — Fase 7+ pode adicionar geometria de pista para refinar.
+  outros carros, a posição lateral dos dots no radar é uma aproximação:
+  - **Em sessão ao vivo**: o carro mais próximo (dentro de 20m) recebe
+    posição lateral real baseada na hint `CarLeftRight` do iRacing
+    (±3.5m do centro); demais carros ficam alinhados ao eixo central
+    ou recebem heurístico se o spotter geral estiver inativo.
+  - **Em replay**: o spotter do iRacing não está disponível, então
+    aplicamos um espalhamento heurístico em 5 lanes (~±3.5m no total)
+    baseado em CarIdx. É puramente cosmético — distingue visualmente
+    carros agrupados — mas não corresponde à posição lateral real.
+  - Em curvas isto pode parecer impreciso — Fase 7+ pode adicionar
+    geometria de pista para refinar.
 
-- **Em replay o spotter não funciona** — limitação do iRacing, não bug
-  do app (já documentado em TESTING-FASE1.md).
+- **Em replay o spotter do iRacing não funciona** — mas os halos
+  laranja/vermelho no RadarWidget compensam visualmente.
 
 ---
 

@@ -100,15 +100,29 @@ public sealed class RadarEngine
                     entry.X, spotterAlert, _settings.CloseDistanceMeters);
             }
 
-            var (x, y) = RelativePositionSolver.Solve(
+            var (x, realY) = RelativePositionSolver.Solve(
                 focused!.LapDistPct,
                 entry.Car.LapDistPct,
                 trackLen,
                 hint,
                 _settings.SideBySideLateralMeters);
 
+            // Threat is computed BEFORE any heuristic Y is layered on, so the
+            // cosmetic visualization spread can't accidentally elevate danger.
             var sideBySide = hint != LateralHint.None;
-            var threat = ThreatDetector.Classify(x, y, sideBySide, _settings);
+            var threat = ThreatDetector.Classify(x, realY, sideBySide, _settings);
+
+            // Heuristic lateral spread for visualization when the live spotter
+            // isn't available (replay mode — iRacing only computes CarLeftRight
+            // for the live driver). Without this, every dot stacks on the
+            // radar's vertical centerline and you can't tell adjacent cars
+            // apart. NOT real lateral position — purely cosmetic, gated on
+            // the spotter being Off so live mode never sees it.
+            var y = realY;
+            if (hint == LateralHint.None && snapshot.Proximity == CarLeftRight.Off)
+            {
+                y = HeuristicLateralOffset(entry.Car.CarIdx, _settings.SideBySideLateralMeters);
+            }
 
             var distance = MathF.Sqrt((x * x) + (y * y));
             var gap = GapCalculator.ComputeSignedGap(
@@ -175,4 +189,21 @@ public sealed class RadarEngine
     }
 
     private readonly record struct RadarComputedEntry(CarState Car, float X);
+
+    // Five stable lanes derived from CarIdx so adjacent cars in a cluster
+    // get visibly distinct lateral positions on the radar even when iRacing
+    // hasn't published a real spotter hint. Returns offsets in meters in
+    // the range [-laneWidth, +laneWidth]:
+    //   lane = -2 → -laneWidth
+    //   lane = -1 → -0.5 * laneWidth
+    //   lane =  0 →  0
+    //   lane = +1 → +0.5 * laneWidth
+    //   lane = +2 → +laneWidth
+    private static float HeuristicLateralOffset(int carIdx, float laneWidth)
+    {
+        // (((idx % 5) + 5) % 5) is the standard "positive modulo" trick — keeps
+        // the lane index in 0..4 even when carIdx is somehow negative.
+        var lane = (((carIdx % 5) + 5) % 5) - 2;
+        return lane * (laneWidth * 0.5f);
+    }
 }
