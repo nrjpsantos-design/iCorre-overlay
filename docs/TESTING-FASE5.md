@@ -51,20 +51,27 @@ iRacing (em vez de apenas o HelloWidget de antes):
       em sessão ao vivo)
 
 ### Radar widget
-- [ ] **Retângulo branco vertical** no centro (player), com borda escura
-      sutil
+- [ ] **Retângulo branco vertical** maior no centro (player), com borda
+      escura sutil
 - [ ] Dois círculos concêntricos (linha cinza) representam os anéis de
-      distância — o externo é 50m, o interno é 25m, label "25m" perto
-      do interno
+      distância — o externo é **15m** (range total reduzido para focar
+      em perigos iminentes), o interno é **7m**, label "7m" perto do
+      interno
 - [ ] Cruz cinza pelo centro (horizontal e vertical) para referência
-- [ ] **Retângulos verticais coloridos** aparecem onde há carros próximos:
+- [ ] **Retângulos verticais coloridos** maiores aparecem onde há carros
+      próximos:
   - cinza fraco quando longe (Safe)
-  - **laranja** quando perto (Close, até ~20m)
-  - **vermelho** quando muito perto (Danger, até ~8m)
-- [ ] **Halo translúcido ao redor de carros Close/Danger** (laranja/vermelho)
-      — é o indicador de proximidade que substituiu as barras laterais
+  - **laranja** quando perto (Close)
+  - **vermelho** quando muito perto (Danger)
+- [ ] **Halo direcional ao redor do PLAYER** (não mais ao redor dos
+      outros carros): quando há um carro Close/Danger no radar, aparece
+      um halo translúcido **deslocado em direção ao carro mais
+      ameaçador**. Cor laranja para Close, vermelha para Danger.
+- [ ] Player rectangle continua sempre **centralizado** — só o halo
+      "vaza" para o lado da ameaça
 - [ ] Em replay com vários carros próximos: dots espalhados em 5 "lanes"
-      laterais (heurístico, não posição real) para diferenciação visual
+      laterais (heurístico, não posição real) para diferenciação visual.
+      Com range reduzido para 15m, o espalhamento fica ainda mais visível
 - [ ] Em sessão ao vivo: dots laterais usam o spotter real do iRacing
       (precisão real quando há `CarLeft`/`CarRight`)
 - [ ] Quando o replay avança, retângulos se movem suavemente
