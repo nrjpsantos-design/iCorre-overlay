@@ -52,7 +52,17 @@ internal static class Program
             new Win32ForegroundWindowQuery(),
             IRacingProcessNames.All);
 
-        var overlay = new RadarOverlay(frames, hostDetector);
+        var iRacingFinder = new IRacingWindowFinder();
+        var monitorLocator = new MonitorLocator();
+        var windowMover = new OverlayWindowMover();
+
+        var overlay = new RadarOverlay(
+            frames,
+            hostDetector,
+            iRacingFinder,
+            monitorLocator,
+            windowMover,
+            log: msg => Console.WriteLine(msg));
 
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>

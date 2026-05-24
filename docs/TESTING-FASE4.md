@@ -62,7 +62,17 @@ Close the overlay window (Alt+F4) or press Ctrl+C in this console to stop.
 [telemetry] Connecting
 [telemetry] InSession
 [overlay] starting render loop
+[overlay] following iRacing onto monitor 1920x1080 at (1920, 0)
 ```
+
+> O último `[overlay] following iRacing onto monitor ...` aparece quando o
+> app detecta em qual monitor o iRacing está rodando e move a janela
+> transparente para esse monitor. Em setup single-monitor as coordenadas
+> são `(0, 0)`. Em multi-monitor com iRacing no secundário, você vai ver
+> coordenadas como `(1920, 0)`, `(-1920, 0)`, etc.
+>
+> Se você mover o iRacing entre monitores depois, o overlay segue dentro
+> de até 2 segundos (re-check periódico).
 
 E **na tela** (sobreposto ao iRacing): uma pequena janela no canto superior
 esquerdo com algo assim:
