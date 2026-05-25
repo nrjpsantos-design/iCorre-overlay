@@ -23,11 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!--
-      Velopack temporarily disabled while we diagnose a Windows-runner
-      restore failure. AppUpdater is stubbed when this is not present.
-    -->
-    <!-- <PackageReference Include="Velopack" Version="0.0.1298" /> -->
+    <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
 </Project>
