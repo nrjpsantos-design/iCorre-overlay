@@ -1,5 +1,6 @@
 using ClickableTransparentOverlay;
 using iRadar.Core.Radar;
+using iRadar.Core.Settings;
 using iRadar.Overlay.Widgets;
 
 namespace iRadar.Overlay.Window;
@@ -34,6 +35,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
     private readonly WindowStyleManager _styleManager;
     private readonly EditModeController _editMode;
     private readonly WidgetLayoutManager _layouts;
+    private readonly Func<RadarSettings> _getSettings;
+    private readonly Action<RadarSettings> _setSettings;
     private readonly Action<string> _log;
 
     private bool _positionedToVirtualDesktop;
@@ -50,6 +53,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         WindowStyleManager styleManager,
         EditModeController editMode,
         WidgetLayoutManager layouts,
+        Func<RadarSettings> getSettings,
+        Action<RadarSettings> setSettings,
         Action<string>? log = null)
         : base("iRadar Overlay", width, height)
     {
@@ -60,6 +65,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         ArgumentNullException.ThrowIfNull(styleManager);
         ArgumentNullException.ThrowIfNull(editMode);
         ArgumentNullException.ThrowIfNull(layouts);
+        ArgumentNullException.ThrowIfNull(getSettings);
+        ArgumentNullException.ThrowIfNull(setSettings);
 
         _frames = frames;
         _hostDetector = hostDetector;
@@ -68,6 +75,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         _styleManager = styleManager;
         _editMode = editMode;
         _layouts = layouts;
+        _getSettings = getSettings;
+        _setSettings = setSettings;
         _log = log ?? (_ => { });
 
         VSync = true;
@@ -106,6 +115,8 @@ public sealed class RadarOverlay : ClickableTransparentOverlay.Overlay
         StatusWidget.Draw(snapshot, frame, _layouts, _editMode.IsActive);
         RadarWidget.Draw(frame, _layouts, _editMode.IsActive);
         RelativeWidget.Draw(frame, _layouts, _editMode.IsActive);
+        FlagWidget.Draw(snapshot, _layouts, _editMode.IsActive);
+        SettingsWidget.Draw(_getSettings(), _layouts, _editMode.IsActive, _setSettings);
 
         if (_editMode.IsActive)
         {

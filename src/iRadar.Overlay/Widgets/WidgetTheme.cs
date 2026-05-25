@@ -26,6 +26,7 @@ internal static class WidgetTheme
     public static readonly Vector4 BehindFalling  = new(0.45f, 0.85f, 0.55f, 1.00f);  // behind = drifting back
     public static readonly Vector4 NeutralText = new(0.85f, 0.85f, 0.85f, 1.00f);
     public static readonly Vector4 MutedText   = new(0.60f, 0.60f, 0.60f, 0.80f);
+    public static readonly Vector4 OtherClassText = new(0.55f, 0.65f, 0.80f, 0.85f);  // bluish-gray for traffic from other classes
     public static readonly Vector4 Waiting     = new(0.95f, 0.75f, 0.20f, 1.00f);
 
     public const float DefaultBgAlpha = 0.45f;

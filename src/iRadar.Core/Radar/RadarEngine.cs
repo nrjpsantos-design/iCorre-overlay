@@ -61,6 +61,8 @@ public sealed class RadarEngine
                 CapturedAt = snapshot.CapturedAt,
                 SessionTick = snapshot.SessionTick,
                 Spotter = spotterAlert,
+                PlayerIRating = focused?.IRating ?? 0,
+                PlayerClassId = focused?.ClassId ?? 0,
             };
         }
 
@@ -160,6 +162,7 @@ public sealed class RadarEngine
                     DriverName = entry.Car.DriverName,
                     CarNumber = entry.Car.CarNumber,
                     IRating = entry.Car.IRating,
+                    ClassId = entry.Car.ClassId,
                     Position = entry.Car.Position,
                     GapSeconds = gap,
                     OnPitRoad = entry.Car.OnPitRoad,
@@ -190,6 +193,8 @@ public sealed class RadarEngine
             Dots = dots,
             Ahead = ahead,
             Behind = behind,
+            PlayerIRating = focused!.IRating,
+            PlayerClassId = focused.ClassId,
         };
     }
 

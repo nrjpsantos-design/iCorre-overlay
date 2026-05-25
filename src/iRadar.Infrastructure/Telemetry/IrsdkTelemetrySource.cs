@@ -171,6 +171,7 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
         _client.ReadInt("CarLeftRight", out var proximityRaw);
         _client.ReadBool("IsOnTrack", out var isOnTrack);
         _client.ReadBool("IsReplayPlaying", out var isReplayPlaying);
+        _client.ReadInt("SessionFlags", out var sessionFlagsRaw);
 
         _client.ReadFloatArray("CarIdxLapDistPct", floatBuf, out var lapDistCount);
         var estTime = new float[lapDistCount];
@@ -248,6 +249,7 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
             Proximity = (CarLeftRight)proximityRaw,
             IsOnTrack = isOnTrack,
             IsReplayPlaying = isReplayPlaying,
+            Flags = unchecked((SessionFlag)(uint)sessionFlagsRaw),
             Cars = cars,
         };
     }
