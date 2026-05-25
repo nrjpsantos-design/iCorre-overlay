@@ -49,8 +49,11 @@ internal static class Program
         // `dotnet run` (not installed).
         _ = Task.Run(() => AppUpdater.CheckOnStartupAsync(Log));
 
+        var settingsStore = new JsonUserSettingsStore(Log);
+        var settings = settingsStore.Load();
+
         var frames = new RadarFrameBuffer();
-        var engine = new RadarEngine();
+        var engine = new RadarEngine(settings.Radar);
 
         var telemetry = new IrsdkTelemetrySource();
         telemetry.StateChanged += (_, state) => Log($"[telemetry] {state}");
@@ -76,8 +79,6 @@ internal static class Program
         var windowMover = new OverlayWindowMover();
         var styleManager = new WindowStyleManager();
 
-        var settingsStore = new JsonUserSettingsStore(Log);
-        var settings = settingsStore.Load();
         var layouts = new WidgetLayoutManager(settings.Widgets);
 
         var hotkey = new GlobalHotkey();
@@ -86,8 +87,10 @@ internal static class Program
             Log($"[overlay] edit mode {(isActive ? "ON" : "OFF")}");
             if (!isActive)
             {
-                // Toggle OFF: persist whatever the user dragged to.
+                // Toggle OFF: persist whatever the user dragged to AND any
+                // engine settings tweaked through the Settings panel.
                 settings.Widgets = layouts.Snapshot();
+                settings.Radar = engine.Settings;
                 settingsStore.TrySave(settings);
             }
         });
@@ -110,6 +113,8 @@ internal static class Program
             styleManager,
             editMode,
             layouts,
+            getSettings: () => engine.Settings,
+            setSettings: s => engine.Settings = s,
             log: Log);
 
         using var cts = new CancellationTokenSource();

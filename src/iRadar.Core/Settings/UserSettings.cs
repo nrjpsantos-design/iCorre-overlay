@@ -1,3 +1,5 @@
+using iRadar.Core.Radar;
+
 namespace iRadar.Core.Settings;
 
 // User-customisable settings persisted to settings.json. Versioned so future
@@ -7,16 +9,22 @@ namespace iRadar.Core.Settings;
 // Widgets is a Dictionary (rather than IReadOnlyDictionary) so it round-trips
 // through System.Text.Json without custom converters. The dictionary keys
 // are WidgetIds constants.
+//
+// Version history:
+//   1 — initial schema (Widgets only)
+//   2 — added Radar (tunable engine knobs) + WidgetIds.Settings / WidgetIds.Flag
 public sealed class UserSettings
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
     public Dictionary<string, WidgetLayout> Widgets { get; set; } = new();
+    public RadarSettings Radar { get; set; } = RadarSettings.Default;
 
     public static UserSettings CreateDefaults() => new()
     {
         Version = CurrentVersion,
+        Radar = RadarSettings.Default,
         Widgets = new Dictionary<string, WidgetLayout>
         {
             [WidgetIds.Status] = new WidgetLayout
@@ -38,6 +46,20 @@ public sealed class UserSettings
                 Id = WidgetIds.Relative,
                 X = 300f, Y = 20f,
                 Width = 340f, Height = 280f,
+                Visible = true,
+            },
+            [WidgetIds.Settings] = new WidgetLayout
+            {
+                Id = WidgetIds.Settings,
+                X = 660f, Y = 20f,
+                Width = 320f, Height = 280f,
+                Visible = true,  // only ever shown inside Edit Mode anyway
+            },
+            [WidgetIds.Flag] = new WidgetLayout
+            {
+                Id = WidgetIds.Flag,
+                X = 700f, Y = 20f,
+                Width = 280f, Height = 70f,
                 Visible = true,
             },
         },

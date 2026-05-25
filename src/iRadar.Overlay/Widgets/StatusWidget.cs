@@ -54,6 +54,12 @@ internal static class StatusWidget
                 ImGui.Separator();
                 Label("Dots",    frame.Dots.Count.ToString());
                 Label("Spotter", frame.Spotter.ToString());
+
+                var flag = SessionFlagClassifier.Classify(snapshot.Flags);
+                if (flag != FlagState.None)
+                {
+                    Label("Flag", flag.ToString());
+                }
             }
         }
         finally

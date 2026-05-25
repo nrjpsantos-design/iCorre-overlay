@@ -27,6 +27,11 @@ public sealed record TelemetrySnapshot
     public required bool IsOnTrack { get; init; }
     public required bool IsReplayPlaying { get; init; }
 
+    // Session-level race-control flag bitfield (yellow, SC, red, blue, etc.).
+    // Populated in live and replay alike — iRacing keeps SessionFlags in the
+    // shared memory through both modes.
+    public SessionFlag Flags { get; init; } = SessionFlag.None;
+
     // All cars in the session, including the player. Order is by CarIdx.
     public required IReadOnlyList<CarState> Cars { get; init; }
 
