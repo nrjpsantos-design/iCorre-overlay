@@ -36,13 +36,10 @@
 
   <ItemGroup>
     <!--
-      Velopack: external Windows installer + auto-update framework. Reads
-      our published binaries, packages them into a setup.exe + delta packs,
-      and at runtime checks GitHub Releases for newer versions. No process
-      injection or driver components — it's a regular .NET library that
-      uses the user-mode Windows APIs every installer uses.
+      Velopack temporarily disabled while we diagnose a Windows-runner
+      restore failure. AppUpdater is stubbed when this is not present.
     -->
-    <PackageReference Include="Velopack" Version="0.0.1053" />
+    <!-- <PackageReference Include="Velopack" Version="0.0.1298" /> -->
   </ItemGroup>
 
 </Project>

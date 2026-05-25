@@ -4,7 +4,6 @@ using iRadar.Infrastructure.Settings;
 using iRadar.Infrastructure.Telemetry;
 using iRadar.Overlay.Widgets;
 using iRadar.Overlay.Window;
-using Velopack;
 
 namespace iRadar.App;
 
@@ -24,11 +23,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        // Velopack MUST run first so it can intercept the --veloapp-* CLI
-        // args used by the installer / updater scaffolding. For normal user
-        // launches this returns immediately and we continue into MainAsync.
-        VelopackApp.Build().Run();
-
+        // Velopack hook temporarily removed pending diagnosis of the
+        // Windows-runner restore failure. Once the package is back, this
+        // becomes:  VelopackApp.Build().Run();
         return MainAsync(args).GetAwaiter().GetResult();
     }
 
