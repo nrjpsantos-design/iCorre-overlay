@@ -73,6 +73,11 @@ public sealed class RadarEngine
         foreach (var car in snapshot.Cars)
         {
             if (car.CarIdx == focused!.CarIdx) continue;
+            // Skip phantom slots — cars that iRacing keeps in the CarIdx
+            // arrays but aren't actually anywhere in the world (DNF, garage
+            // only). Their LapDistPct is stuck at 0 and would otherwise
+            // paint a permanent marker at the start/finish line.
+            if (!car.IsInWorld) continue;
 
             var x = SpatialMath.CircularDeltaMeters(
                 focused.LapDistPct, car.LapDistPct, trackLen);
@@ -193,9 +198,9 @@ public sealed class RadarEngine
     // Spacing between adjacent heuristic lanes, in meters. Independent of
     // SideBySideLateralMeters (which is for the live spotter hint and
     // represents a real lane width) — this is purely a visual nudge for the
-    // replay heuristic and is kept tight on purpose so cars don't look
-    // implausibly far apart laterally.
-    private const float HeuristicLaneStepMeters = 1.0f;
+    // replay heuristic and is kept tight on purpose so cars look close to
+    // the player, amplifying the "risco lateral" sensation.
+    private const float HeuristicLaneStepMeters = 0.5f;
 
     // Five stable lanes derived from CarIdx so adjacent cars in a cluster
     // get visibly distinct lateral positions on the radar even when iRacing

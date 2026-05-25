@@ -20,6 +20,13 @@ public sealed record CarState
     public required float EstTime { get; init; }
     public required bool OnPitRoad { get; init; }
 
+    // True when iRacing reports the car as anywhere in the world (on track,
+    // off track, in pit lane, approaching pit). False for retired / DNF /
+    // garage-only slots that iRacing keeps in CarIdx arrays as ghosts at
+    // LapDistPct=0. RadarEngine uses this to suppress phantom markers that
+    // would otherwise hover over the start/finish line every lap.
+    public required bool IsInWorld { get; init; }
+
     public static CarState Empty(int carIdx) => new()
     {
         CarIdx = carIdx,
@@ -32,5 +39,6 @@ public sealed record CarState
         Position = 0,
         EstTime = 0f,
         OnPitRoad = false,
+        IsInWorld = true,
     };
 }

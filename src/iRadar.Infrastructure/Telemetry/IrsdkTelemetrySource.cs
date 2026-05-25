@@ -186,6 +186,17 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
         var onPit = new bool[carCount];
         _client.ReadBoolArray("CarIdxOnPitRoad", onPit, out _);
 
+        // CarIdxTrackSurface per iRacing's irsdk_TrkLoc enum:
+        //   0 = NotInWorld (retired / DNF / never started — phantom slot)
+        //   1 = OffTrack
+        //   2 = InPitStall
+        //   3 = ApproachingPits
+        //   4 = OnTrack
+        // We treat anything other than NotInWorld as "in world" — even pit
+        // road cars count, because they can re-enter the race.
+        var trackSurface = new int[carCount];
+        _client.ReadIntArray("CarIdxTrackSurface", trackSurface, out _);
+
         var cars = new List<CarState>(carCount);
         for (var i = 0; i < carCount; i++)
         {
@@ -196,6 +207,9 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
             var distForCar = i < lapDistCount ? floatBuf[i] : 0f;
 
             if (!hasDriver && lapForCar == 0 && distForCar == 0f) continue;
+
+            var surface = i < trackSurface.Length ? trackSurface[i] : 0;
+            var inWorld = surface != 0;   // 0 = NotInWorld
 
             cars.Add(new CarState
             {
@@ -209,6 +223,7 @@ public sealed class IrsdkTelemetrySource : ITelemetrySource
                 Position = i < positions.Length ? positions[i] : 0,
                 EstTime = i < estTime.Length ? estTime[i] : 0f,
                 OnPitRoad = i < onPit.Length && onPit[i],
+                IsInWorld = inWorld,
             });
         }
 

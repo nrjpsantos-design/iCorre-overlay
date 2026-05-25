@@ -6,7 +6,7 @@ namespace iRadar.Core.Tests.Telemetry;
 public class CarStateTests
 {
     [Fact]
-    public void Empty_ZeroesAllNumericFields()
+    public void Empty_ZeroesAllNumericFields_AndAssumesInWorld()
     {
         var c = CarState.Empty(carIdx: 3);
 
@@ -20,6 +20,9 @@ public class CarStateTests
         Assert.Equal(0, c.Position);
         Assert.Equal(0f, c.EstTime);
         Assert.False(c.OnPitRoad);
+        // Defaulting to in-world keeps test builders simple. The live IRSDK
+        // adapter sets this explicitly from CarIdxTrackSurface.
+        Assert.True(c.IsInWorld);
     }
 
     [Fact]

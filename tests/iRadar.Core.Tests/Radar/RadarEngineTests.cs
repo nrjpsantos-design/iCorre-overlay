@@ -318,6 +318,28 @@ public class RadarEngineTests
     }
 
     [Fact]
+    public void Cars_NotInWorld_AreExcludedFromDotsAndRelative()
+    {
+        // iRacing keeps phantom CarIdx slots for retired / DNF cars whose
+        // LapDistPct stays at 0. Without the IsInWorld filter they would
+        // paint a permanent marker at the start/finish line every lap.
+        var engine = new RadarEngine();
+        var snap = BuildSnapshot(
+            playerLapDistPct: 0.50f,
+            others: new[]
+            {
+                MakeCar(1, 0.505f, name: "Real"),
+                MakeCar(2, 0.000f, name: "Ghost") with { IsInWorld = false },
+            });
+
+        var frame = engine.Build(snap);
+        var dot = Assert.Single(frame.Dots);
+        Assert.Equal(1, dot.CarIdx);
+        Assert.DoesNotContain(frame.Ahead, e => e.CarIdx == 2);
+        Assert.DoesNotContain(frame.Behind, e => e.CarIdx == 2);
+    }
+
+    [Fact]
     public void ReplayMode_UsesCameraCar_NotPlayerCar()
     {
         // Player is on car 0 (at 0.10), camera is on car 7 (at 0.60).

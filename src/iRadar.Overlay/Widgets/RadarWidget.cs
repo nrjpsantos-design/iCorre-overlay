@@ -5,36 +5,35 @@ using ImGuiNET;
 
 namespace iRadar.Overlay.Widgets;
 
-// Circular radar — player drawn as a white vertical rectangle at the center,
-// other cars as colored vertical rectangles. Proximity feedback is a
-// directional CONE (sector) with its apex on the player and opening toward
-// the single worst nearby threat. Player stays at the geometric center; the
-// cone is the only thing that "rotates" with the threat direction.
+// Minimal radar — only paints the player rectangle, nearby car rectangles
+// and the directional threat cone. No range rings, no crosshair, no half-
+// ring label, no panel background (per user feedback: keep the in-game
+// space clean and only show information when something needs attention).
+//
+// Visibility rules:
+//   - Edit Mode             → always visible with a translucent background
+//                             so the user can drag/resize the widget.
+//   - Locked mode + no dots → hidden entirely (no anchor rectangle visible).
+//   - Locked mode + dots    → visible, fully transparent background.
 //
 // Coordinate translation (player at origin):
 //   world.X (ahead, +)   →  screen.Y (-)    (up is "ahead")
 //   world.Y (right, +)   →  screen.X (+)    (right is "right")
 //
-// Range rings (full and half radius) give a scale reference; the half-ring
-// shows a `Nm` label. Default visible range is 15m — tight enough to focus on
-// imminent contact, which is where the radar matters most.
+// Default visible range is 10 m — tight enough to focus on imminent
+// contact, which is where the radar matters most.
 internal static class RadarWidget
 {
     private const string Title = "iRadar — Radar";
     private const float DefaultRangeMeters = 10f;
-    private const float HalfRingLabelPadding = 4f;
 
-    // Car-rectangle dimensions in screen pixels.
     private const float CarWidthPx = 12f;
     private const float CarHeightPx = 24f;
 
-    // Threat cone — apex at player center, opens toward worst threat. Inner
-    // bright sector + outer fainter sector give the glow effect without any
-    // shader work.
     private const float ConeInnerRadiusPx = 56f;
     private const float ConeOuterRadiusPx = 72f;
-    private const float ConeInnerHalfAngleRad = 0.55f;   // ~31°  → ~62° opening
-    private const float ConeOuterHalfAngleRad = 0.75f;   // ~43°  → ~86° opening
+    private const float ConeInnerHalfAngleRad = 0.55f;
+    private const float ConeOuterHalfAngleRad = 0.75f;
     private const int ConeArcSegments = 18;
 
     public static void Draw(
@@ -43,7 +42,18 @@ internal static class RadarWidget
         bool editMode,
         float rangeMeters = DefaultRangeMeters)
     {
-        if (!WidgetHelper.Begin(WidgetIds.Radar, Title, layouts, editMode, WidgetTheme.DefaultBgAlpha))
+        var hasDots = frame is { IsActive: true } && frame.Dots.Count > 0;
+
+        // Locked mode hides the radar entirely when there's nothing to warn
+        // about. Edit Mode always renders so the user can find and reposition
+        // the widget.
+        if (!editMode && !hasDots) return;
+
+        // Transparent background in locked mode; visible background in Edit
+        // Mode so the user can see/grab the widget bounds.
+        var bgAlpha = editMode ? WidgetTheme.DefaultBgAlpha : 0f;
+
+        if (!WidgetHelper.Begin(WidgetIds.Radar, Title, layouts, editMode, bgAlpha))
         {
             return;
         }
@@ -68,29 +78,8 @@ internal static class RadarWidget
         if (radius <= 0f) return;
 
         var pxPerMeter = radius / rangeMeters;
-        var ringColor = WidgetTheme.U32(WidgetTheme.RangeRing);
 
-        // Range rings + crosshair for orientation.
-        drawList.AddCircle(center, radius, ringColor, 64, 1.5f);
-        drawList.AddCircle(center, radius * 0.5f, ringColor, 48, 1.0f);
-        drawList.AddLine(
-            new Vector2(center.X, center.Y - radius),
-            new Vector2(center.X, center.Y + radius),
-            ringColor, 1.0f);
-        drawList.AddLine(
-            new Vector2(center.X - radius, center.Y),
-            new Vector2(center.X + radius, center.Y),
-            ringColor, 1.0f);
-
-        var labelText = $"{rangeMeters / 2f:F0}m";
-        drawList.AddText(
-            new Vector2(center.X + (radius * 0.5f) + HalfRingLabelPadding, center.Y + HalfRingLabelPadding),
-            WidgetTheme.U32(WidgetTheme.PanelLabel),
-            labelText);
-
-        // First pass: find the worst nearby threat — used to position the
-        // player's directional halo. "Worst" = highest ThreatLevel, ties
-        // broken by closer Euclidean distance.
+        // First pass: find the worst nearby threat for the directional cone.
         RadarDot? worstThreat = null;
         var worstThreatDistSq = float.MaxValue;
         var worstThreatDirection = Vector2.Zero;
@@ -119,15 +108,13 @@ internal static class RadarWidget
             }
         }
 
-        // Threat cone, drawn FIRST so dots and the player rectangle paint on
-        // top of it.
+        // Cone first so the rectangles paint on top of it.
         if (worstThreat is not null)
         {
             DrawThreatCone(drawList, center, worstThreatDirection, worstThreat.Threat);
         }
 
-        // Other cars — plain colored rectangles, no individual halos (the
-        // directional player halo above is the single proximity indicator).
+        // Other cars.
         if (frame is { IsActive: true })
         {
             foreach (var dot in frame.Dots)
@@ -142,7 +129,7 @@ internal static class RadarWidget
             }
         }
 
-        // Player on top of everything.
+        // Player on top.
         DrawCarRect(drawList, center, WidgetTheme.PlayerFill, isPlayer: true);
     }
 
@@ -158,13 +145,8 @@ internal static class RadarWidget
         var length = MathF.Sqrt((directionPx.X * directionPx.X) + (directionPx.Y * directionPx.Y));
         if (length < 0.01f) return;
 
-        // Angle of the threat relative to the +X axis (ImGui screen space:
-        // +X right, +Y down, atan2 returns radians in (-π, π]).
         var angle = MathF.Atan2(directionPx.Y, directionPx.X);
 
-        // Outer (fainter, wider) layer first, then inner (brighter, tighter)
-        // — same trick as the offset halo but as a sector that points exactly
-        // at the threat.
         var outer = color;
         outer.W *= 0.45f;
         DrawCone(drawList, apex, angle, ConeOuterRadiusPx, ConeOuterHalfAngleRad, outer);
@@ -199,8 +181,6 @@ internal static class RadarWidget
 
         drawList.AddRectFilled(tl, br, WidgetTheme.U32(fill), 2.5f);
 
-        // Subtle dark outline only on the player so the white rectangle
-        // doesn't disappear against bright skies or pale tarmac.
         if (isPlayer)
         {
             drawList.AddRect(tl, br, WidgetTheme.U32(WidgetTheme.PlayerBorder), 2.5f, ImDrawFlags.None, 1.4f);

@@ -51,14 +51,18 @@ iRacing (em vez de apenas o HelloWidget de antes):
       em sessão ao vivo)
 
 ### Radar widget
-- [ ] **Retângulo branco vertical** maior no centro (player), com borda
-      escura sutil
-- [ ] Dois círculos concêntricos (linha cinza) representam os anéis de
-      distância — o externo é **10m** (range total bem apertado para
-      focar em perigos iminentes), o interno é **5m**, label "5m" perto
-      do interno
-- [ ] Cruz cinza pelo centro (horizontal e vertical) para referência
-- [ ] **Retângulos verticais coloridos** maiores aparecem onde há carros
+- [ ] **Visível apenas quando há carros próximos** (em modo locked).
+      Sem nada na zona de 10m, o widget some por inteiro — sem fundo,
+      sem player rectangle visível.
+- [ ] Em Edit Mode (`Ctrl+Alt+E`): sempre visível com background
+      translúcido para você posicionar/redimensionar.
+- [ ] Fundo do widget é **totalmente transparente** (em locked mode) —
+      não há painel cinza/escuro atrás do conteúdo.
+- [ ] **Retângulo branco vertical** no centro (player), com borda
+      escura sutil — aparece quando há carros próximos.
+- [ ] **Sem** rings de distância, **sem** cruz central, **sem** label
+      "5m" — só carros e cones.
+- [ ] **Retângulos verticais coloridos** aparecem onde há carros
       próximos:
   - cinza fraco quando longe (Safe)
   - **laranja** quando perto (Close)
