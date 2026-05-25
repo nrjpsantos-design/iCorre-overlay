@@ -42,7 +42,7 @@
       injection or driver components — it's a regular .NET library that
       uses the user-mode Windows APIs every installer uses.
     -->
-    <PackageReference Include="Velopack" Version="0.0.1298" />
+    <PackageReference Include="Velopack" Version="0.0.1053" />
   </ItemGroup>
 
 </Project>
