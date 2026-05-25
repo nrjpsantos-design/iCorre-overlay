@@ -27,8 +27,19 @@ internal static class RadarWidget
     private const string Title = "iRadar — Radar";
     private const float DefaultRangeMeters = 10f;
 
-    private const float CarWidthPx = 12f;
-    private const float CarHeightPx = 24f;
+    // Real-world car dimensions, used to size rectangles in pixels via
+    // pxPerMeter at render time. The visual passing/overtaking transition
+    // now mirrors the physical one: the other car's rectangle only fully
+    // clears the player's when their bodies have actually fully cleared.
+    // A 4.7×2 m approximation matches modern GT3 / TCR / road-touring cars;
+    // open-wheelers and prototypes are within ±15%.
+    private const float CarLengthMeters = 4.7f;
+    private const float CarWidthMeters = 2.0f;
+
+    // Floor sizes so the radar is still readable if the user shrinks the
+    // widget far enough that proportional pixels would round to nothing.
+    private const float MinCarWidthPx = 8f;
+    private const float MinCarHeightPx = 16f;
 
     private const float ConeInnerRadiusPx = 56f;
     private const float ConeOuterRadiusPx = 72f;
@@ -90,6 +101,14 @@ internal static class RadarWidget
 
         var pxPerMeter = radius / rangeMeters;
 
+        // Scale the car rectangles to their real-world dimensions on the
+        // same pxPerMeter scale the dots use. With a 10 m range at radius
+        // ~116 px, this yields ~23 px wide × ~55 px tall — which means
+        // bumper-to-bumper centre delta (~4.7 m) really IS bumper-to-bumper
+        // visually, and a full pass on track matches a full pass on screen.
+        var carWidthPx = MathF.Max(MinCarWidthPx, pxPerMeter * CarWidthMeters);
+        var carHeightPx = MathF.Max(MinCarHeightPx, pxPerMeter * CarLengthMeters);
+
         // First pass: find the worst nearby threat for the directional cone.
         RadarDot? worstThreat = null;
         var worstThreatDistSq = float.MaxValue;
@@ -136,12 +155,12 @@ internal static class RadarWidget
                 if (sqDist > radius * radius) continue;
 
                 var screen = new Vector2(center.X + dx, center.Y + dy);
-                DrawCarRect(drawList, screen, WidgetTheme.ColorFor(dot.Threat), isPlayer: false);
+                DrawCarRect(drawList, screen, WidgetTheme.ColorFor(dot.Threat), carWidthPx, carHeightPx, isPlayer: false);
             }
         }
 
         // Player on top.
-        DrawCarRect(drawList, center, WidgetTheme.PlayerFill, isPlayer: true);
+        DrawCarRect(drawList, center, WidgetTheme.PlayerFill, carWidthPx, carHeightPx, isPlayer: true);
     }
 
     private static void DrawThreatCone(
@@ -183,10 +202,16 @@ internal static class RadarWidget
         drawList.PathFillConvex(WidgetTheme.U32(color));
     }
 
-    private static void DrawCarRect(ImDrawListPtr drawList, Vector2 center, Vector4 fill, bool isPlayer)
+    private static void DrawCarRect(
+        ImDrawListPtr drawList,
+        Vector2 center,
+        Vector4 fill,
+        float widthPx,
+        float heightPx,
+        bool isPlayer)
     {
-        var halfW = CarWidthPx / 2f;
-        var halfH = CarHeightPx / 2f;
+        var halfW = widthPx / 2f;
+        var halfH = heightPx / 2f;
         var tl = new Vector2(center.X - halfW, center.Y - halfH);
         var br = new Vector2(center.X + halfW, center.Y + halfH);
 

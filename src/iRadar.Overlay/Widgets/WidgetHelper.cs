@@ -21,6 +21,9 @@ namespace iRadar.Overlay.Widgets;
 internal static class WidgetHelper
 {
     // Flags used when the user is NOT in Edit Mode. Everything locked down.
+    // NoBackground removes BOTH the window fill and the border — without it,
+    // a transparent bg (SetNextWindowBgAlpha(0)) still left the ImGui window
+    // frame visible as a thin rectangle around the widget.
     private const ImGuiWindowFlags LockedFlags =
         ImGuiWindowFlags.NoTitleBar
         | ImGuiWindowFlags.NoResize
@@ -31,6 +34,7 @@ internal static class WidgetHelper
         | ImGuiWindowFlags.NoBringToFrontOnFocus
         | ImGuiWindowFlags.NoNav
         | ImGuiWindowFlags.NoInputs
+        | ImGuiWindowFlags.NoBackground
         | ImGuiWindowFlags.NoSavedSettings;
 
     // Flags for Edit Mode: drop NoInputs / NoMove / NoResize so the user
