@@ -28,7 +28,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore iRadar.sln --verbosity normal
+        run: dotnet restore iRadar.sln
 
       - name: Build (Release)
         run: dotnet build iRadar.sln --configuration Release --no-restore
