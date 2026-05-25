@@ -66,6 +66,16 @@ public sealed class WidgetLayoutManager
         };
     }
 
+    // Flip a widget's Visible flag — wired to the Edit Mode toggle checkbox
+    // in each widget. The new state is persisted on Edit Mode exit through
+    // the same Snapshot() path that captures positions and sizes.
+    public void SetVisibility(string id, bool visible)
+    {
+        if (!_layouts.TryGetValue(id, out var current)) return;
+        if (current.Visible == visible) return;
+        _layouts[id] = current with { Visible = visible };
+    }
+
     // Snapshot for persistence. Returns a deep copy so callers can serialize
     // without worrying about concurrent mutations from the render loop.
     public Dictionary<string, WidgetLayout> Snapshot()

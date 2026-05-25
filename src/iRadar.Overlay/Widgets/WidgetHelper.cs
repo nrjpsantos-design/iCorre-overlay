@@ -52,7 +52,11 @@ internal static class WidgetHelper
         bool editMode,
         float backgroundAlpha)
     {
-        if (!layouts.TryGet(id, out var layout) || !layout.Visible) return false;
+        if (!layouts.TryGet(id, out var layout)) return false;
+
+        // In Edit Mode we always render so the user can toggle / position /
+        // resize even widgets they've hidden. Locked mode honors Visible.
+        if (!editMode && !layout.Visible) return false;
 
         // On first render (or after a layout reload), force ImGui to the
         // saved position. Subsequent frames let ImGui keep its own state
@@ -67,6 +71,20 @@ internal static class WidgetHelper
         ImGui.SetNextWindowBgAlpha(backgroundAlpha);
 
         return ImGui.Begin(title, editMode ? EditFlags : LockedFlags);
+    }
+
+    // Renders the Edit-Mode visibility checkbox at the top of a widget.
+    // Returns the (possibly toggled) Visible state so the caller can decide
+    // whether to draw the rest of the widget's content.
+    public static bool DrawVisibilityToggle(string id, string label, WidgetLayoutManager layouts)
+    {
+        var layout = layouts.Get(id);
+        var visible = layout.Visible;
+        if (ImGui.Checkbox($"{label}: visible", ref visible))
+        {
+            layouts.SetVisibility(id, visible);
+        }
+        return visible;
     }
 
     public static void End(string id, WidgetLayoutManager layouts, bool editMode)

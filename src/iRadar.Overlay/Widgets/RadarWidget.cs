@@ -60,6 +60,17 @@ internal static class RadarWidget
 
         try
         {
+            if (editMode)
+            {
+                var visible = WidgetHelper.DrawVisibilityToggle(WidgetIds.Radar, "Radar", layouts);
+                if (!visible)
+                {
+                    ImGui.TextColored(WidgetTheme.MutedText, "(hidden during racing)");
+                    return;
+                }
+                ImGui.Separator();
+            }
+
             DrawRadarContents(frame, rangeMeters);
         }
         finally

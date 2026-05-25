@@ -26,6 +26,17 @@ internal static class StatusWidget
 
         try
         {
+            if (editMode)
+            {
+                var visible = WidgetHelper.DrawVisibilityToggle(WidgetIds.Status, "Status", layouts);
+                if (!visible)
+                {
+                    ImGui.TextColored(WidgetTheme.MutedText, "(hidden during racing)");
+                    return;
+                }
+                ImGui.Separator();
+            }
+
             if (snapshot is null)
             {
                 ImGui.TextColored(WidgetTheme.Waiting, "Waiting for iRacing telemetry...");

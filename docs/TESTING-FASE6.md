@@ -80,6 +80,20 @@ Esperado no console (linhas novas):
 - [ ] Click-through volta a funcionar: cliques sobre os widgets passam
       pro iRacing normalmente
 
+### Visibility toggle por widget (Edit Mode)
+- [ ] Em Edit Mode, cada widget mostra no topo um checkbox `Status:
+      visible`, `Radar: visible`, `Relative: visible`
+- [ ] Desmarque um deles — o conteúdo do widget some, restando só o
+      checkbox + "(hidden during racing)"
+- [ ] Saia do Edit Mode — o widget desmarcado fica oculto em pista
+      (nem o player rectangle aparece para esse widget)
+- [ ] Os widgets visíveis continuam funcionando normalmente
+- [ ] Volte ao Edit Mode (Ctrl+Alt+E) — o widget oculto reaparece com
+      o checkbox para você poder reativá-lo
+- [ ] Marque de novo, saia do Edit Mode — widget volta normal
+- [ ] Estado de visibilidade persiste entre execuções (gravado no
+      `settings.json`)
+
 ### Persistência entre execuções
 - [ ] Feche o app (Ctrl+C no console ou Alt+F4 no overlay)
 - [ ] Abra `%LocalAppData%\iRadar\settings.json` no Notepad — deve

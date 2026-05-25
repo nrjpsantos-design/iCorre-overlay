@@ -27,6 +27,17 @@ internal static class RelativeWidget
 
         try
         {
+            if (editMode)
+            {
+                var visible = WidgetHelper.DrawVisibilityToggle(WidgetIds.Relative, "Relative", layouts);
+                if (!visible)
+                {
+                    ImGui.TextColored(WidgetTheme.MutedText, "(hidden during racing)");
+                    return;
+                }
+                ImGui.Separator();
+            }
+
             if (frame is null || !frame.IsActive)
             {
                 if (editMode)
