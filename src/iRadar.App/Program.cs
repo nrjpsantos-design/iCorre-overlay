@@ -4,6 +4,7 @@ using iRadar.Infrastructure.Settings;
 using iRadar.Infrastructure.Telemetry;
 using iRadar.Overlay.Widgets;
 using iRadar.Overlay.Window;
+using Velopack;
 
 namespace iRadar.App;
 
@@ -22,7 +23,14 @@ internal static class Program
 {
     [STAThread]
     private static int Main(string[] args)
-        => MainAsync(args).GetAwaiter().GetResult();
+    {
+        // Velopack MUST run first so it can intercept the --veloapp-* CLI
+        // args used by the installer / updater scaffolding. For normal user
+        // launches this returns immediately and we continue into MainAsync.
+        VelopackApp.Build().Run();
+
+        return MainAsync(args).GetAwaiter().GetResult();
+    }
 
     private static void Log(string message)
     {
@@ -36,6 +44,10 @@ internal static class Program
         Log("Anti-cheat boundary: external process, IRSDK shared memory only.");
         Log("Close the overlay window (Alt+F4) or press Ctrl+C to stop.");
         Log(string.Empty);
+
+        // Fire-and-forget — never blocks startup. No-op when running via
+        // `dotnet run` (not installed).
+        _ = Task.Run(() => AppUpdater.CheckOnStartupAsync(Log));
 
         var frames = new RadarFrameBuffer();
         var engine = new RadarEngine();

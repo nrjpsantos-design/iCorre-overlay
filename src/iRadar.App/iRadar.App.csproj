@@ -14,12 +14,35 @@
     <Description>Composition root: wires Telemetry + Radar + Overlay + Infrastructure into the running executable.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>iRadar</AssemblyName>
+
+    <!--
+      Version is consumed by Velopack when packing the installer (`vpk pack
+      --packVersion ...`). Bump on every release tag; CI's release workflow
+      reads the git tag and passes it to vpk so this number doesn't have to
+      stay in sync manually for tagged builds.
+    -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Company>iRadar</Company>
+    <Product>iRadar Overlay</Product>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\iRadar.Core\iRadar.Core.csproj" />
     <ProjectReference Include="..\iRadar.Overlay\iRadar.Overlay.csproj" />
     <ProjectReference Include="..\iRadar.Infrastructure\iRadar.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Velopack: external Windows installer + auto-update framework. Reads
+      our published binaries, packages them into a setup.exe + delta packs,
+      and at runtime checks GitHub Releases for newer versions. No process
+      injection or driver components — it's a regular .NET library that
+      uses the user-mode Windows APIs every installer uses.
+    -->
+    <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
 </Project>

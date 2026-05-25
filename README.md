@@ -4,9 +4,19 @@ External radar/spotter overlay for iRacing. Reads telemetry via the official
 public IRSDK shared-memory interface and renders a transparent always-on-top
 window that shows nearby cars and collision threats.
 
-**Status: Fase 1 (live telemetry connection).** The `iRadar.Replay` tool can
-connect to a running iRacing instance via the public IRSDK shared memory and
-print live telemetry every 100ms. No overlay window yet — that's Fase 4.
+**Status: Fase 9 (distribution).** Functional MVP — radar + relative
+panel + status HUD + Edit Mode + per-widget visibility toggles +
+persistent layout. Distributed as a self-contained Windows installer
+via Velopack with auto-update from GitHub Releases.
+
+## Just want to use it?
+
+👉 **[docs/INSTALLING.md](docs/INSTALLING.md)** has the user-friendly
+walkthrough. Download the latest installer from
+[Releases](https://github.com/nrjpsantos-design/iCorre-overlay/releases/latest),
+run it, done.
+
+The rest of this README is for contributors / developers.
 
 ## Anti-cheat posture
 

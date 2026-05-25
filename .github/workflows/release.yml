@@ -1,0 +1,79 @@
+name: Release
+
+# Pushing a tag like `v0.1.0` triggers a Velopack release: publish the app
+# self-contained, pack it into a setup.exe + delta package, and upload
+# everything to GitHub Releases. Users who already have the installed app
+# pick up the new version automatically on next launch.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Pack and publish
+    runs-on: windows-latest
+    permissions:
+      contents: write   # required to create GitHub Releases / upload assets
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Velopack uses git metadata for delta packs
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install vpk CLI
+        run: dotnet tool install -g vpk
+
+      - name: Compute version from tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Restore solution
+        run: dotnet restore iRadar.sln
+
+      - name: Publish iRadar.App self-contained
+        run: >-
+          dotnet publish src/iRadar.App/iRadar.App.csproj
+          -c Release -r win-x64 --self-contained
+          -p:Version=${{ steps.ver.outputs.version }}
+          -o publish
+
+      - name: Download previous Velopack releases (for delta packs)
+        # First release has nothing to download — that's expected. Don't fail.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          vpk download github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pack release
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId iRadar `
+            --packVersion ${{ steps.ver.outputs.version }} `
+            --packAuthors "iRadar contributors" `
+            --packTitle "iRadar Overlay" `
+            --packDir publish `
+            --mainExe iRadar.exe
+
+      - name: Upload to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --releaseName "iRadar v${{ steps.ver.outputs.version }}" `
+            --tag ${{ github.ref_name }} `
+            --token ${{ secrets.GITHUB_TOKEN }} `
+            --publish
